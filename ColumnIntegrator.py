@@ -72,7 +72,7 @@ class UiMgr :
                 column_integrator.execute()
             msg.showinfo("Info", "Integration complete")
         except Exception as e :
-            msg.showerror("Error", "Error occurred : " + e)
+            msg.showerror("Error", "Error occurred : " + str(e))
 
 
     def run_ui(self) :
@@ -190,39 +190,35 @@ class ColumnIntegrator :
         return result
 
     def execute(self) :
-        try :
-            split_start = 0
-            for row in range(1, len(self.log.data)) :
-                if self.log.data.iloc[row][0] != self.log.data.iloc[0][0] : continue
-                self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=row))
-                split_start = row
-            self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=len(self.log.data)))
+        split_start = 0
+        for row in range(1, len(self.log.data)) :
+            if self.log.data.iloc[row][0] != self.log.data.iloc[0][0] : continue
+            self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=row))
+            split_start = row
+        self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=len(self.log.data)))
 
-            self.__df_list.sort(key=lambda x : len(x.columns), reverse=True)
-            result = pd.concat(self.__df_list, ignore_index=True)
+        self.__df_list.sort(key=lambda x : len(x.columns), reverse=True)
+        result = pd.concat(self.__df_list, ignore_index=True)
 
-            sorted_headers = self.__sort_headers()
-            result = result.reindex(columns = sorted_headers)
-            
-            if ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP) :
-                result.sort_values(by = ["GlobalTime"], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
-
-            match (ui_mgr.get_var_duplicate()) :
-                case int(DUPLICATE_OPTION.DO_NOT_DROP) :
-                    pass
-                case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) :
-                    result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "first", ignore_index = True)
-                case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
-                    result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "last", ignore_index = True)
-                case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE) :
-                    result.drop_duplicates(subset = "sensorID", inplace = True, keep = "first", ignore_index = True)
-                case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
-                    result.drop_duplicates(subset = "sensorID", inplace = True, keep = "last", ignore_index = True)
-            
-            result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
+        sorted_headers = self.__sort_headers()
+        result = result.reindex(columns = sorted_headers)
         
-        except Exception as e :
-            print("Exception : ", e)
+        if ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP) :
+            result.sort_values(by = ["GlobalTime"], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
+
+        match (ui_mgr.get_var_duplicate()) :
+            case int(DUPLICATE_OPTION.DO_NOT_DROP) :
+                pass
+            case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) :
+                result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "first", ignore_index = True)
+            case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
+                result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "last", ignore_index = True)
+            case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE) :
+                result.drop_duplicates(subset = "sensorID", inplace = True, keep = "first", ignore_index = True)
+            case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
+                result.drop_duplicates(subset = "sensorID", inplace = True, keep = "last", ignore_index = True)
+        
+        result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
 
 
 if __name__ == "__main__" :
