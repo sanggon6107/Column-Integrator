@@ -7,43 +7,67 @@ import tkinterdnd2 as dnd
 import pandas as pd
 import csv
 import copy
+from enum import auto, IntEnum
 
+
+class EnumFromZero(IntEnum) :
+    def _generate_next_value_(name, start, count, last_values) :
+        return count
+
+    def __str__(self) :
+        return self.name
+
+    def __repr__(self) :
+        return self.name
+
+class DUPLICATE_OPTION(EnumFromZero) :
+    DO_NOT_DROP = auto()
+    LEAVE_FIRST_FROM_EACH_LOT = auto()
+    LEAVE_LAST_FROM_EACH_LOT = auto()
+    LEAVE_FIRST_FROM_WHOLE = auto()
+    LEAVE_LAST_FROM_WHOLE = auto()
 
 class UiMgr :
     def __init__(self) :
         
         self.__root = dnd.Tk()
         self.__root.title("Column Integrator")
-        self.__root.geometry("640x440+100+100")
+        self.__root.geometry("640x600+100+100")
         self.__root.resizable(False, False)
 
         self.__font_title = tk_font.Font(family = "Consolas", size = 17)
 
-        self.list_full_path = []
-        self.list_file = []
+        self.__list_full_path = []
+        self.__list_file = []
 
+        self.__var_duplicate = tk.IntVar()
+        
         self.regex_file = re.compile("([a-zA-Z]{1}:[^}{]+?)([^/]+?\.[cC][sS][vV])")
+
+    def get_var_duplicate(self) -> int :
+        return self.__var_duplicate.get()
+
     def __add_listbox(self, event) :
         event_data_preproc = event.data.replace("\\", "/")
         files_found = self.regex_file.findall(event_data_preproc)
         for file in files_found :
             full_path_temp = file[0]+file[1]
-            if full_path_temp in self.list_full_path : continue
-            self.list_full_path.append(full_path_temp)
-            self.list_file.append(file[1])
+            if full_path_temp in self.__list_full_path : continue
+            self.__list_full_path.append(full_path_temp)
+            self.__list_file.append(file[1])
             self.list_box.insert(tk.END, file[1])
 
     def __clear(self) :
         self.list_box.delete(0, tk.END)
-        self.list_full_path.clear()
-        self.list_file.clear()
+        self.__list_full_path.clear()
+        self.__list_file.clear()
 
     def __execute_integration(self) :
-        if len(self.list_full_path) == 0 :
+        if len(self.__list_full_path) == 0 :
             msg.showinfo("Info", "List is empty")
             return
         try :
-            for file_path in self.list_full_path :
+            for file_path in self.__list_full_path :
                 column_integrator = ColumnIntegrator(file_path)
                 column_integrator.execute()
             msg.showinfo("Info", "Integration complete")
@@ -71,6 +95,20 @@ class UiMgr :
         self.list_box.drop_target_register(dnd.DND_FILES)
         self.list_box.dnd_bind("<<Drop>>", self.__add_listbox)
         
+        self.frame_duplicate_button = tk.Frame(self.__root)
+        self.frame_duplicate_button.pack(fill = "x", padx = 10, pady = 10)
+        
+        self.radio_button_duplicate_1 = tk.Radiobutton(self.frame_duplicate_button, text = "중복 제거 하지 않음", value = DUPLICATE_OPTION.DO_NOT_DROP, variable = self.__var_duplicate)
+        self.radio_button_duplicate_1.select()
+        self.radio_button_duplicate_2 = tk.Radiobutton(self.frame_duplicate_button, text = "각 랏의 첫 검사만 출력하고 중복 제거", value = DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT, variable = self.__var_duplicate)
+        self.radio_button_duplicate_3 = tk.Radiobutton(self.frame_duplicate_button, text = "각 랏의 첫 검사만 출력하고 중복 제거", value = DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT, variable = self.__var_duplicate)
+        self.radio_button_duplicate_4 = tk.Radiobutton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 첫 검사만 출력하고 중복 제거", value = DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE, variable = self.__var_duplicate)
+        self.radio_button_duplicate_5 = tk.Radiobutton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 마지막 검사만 출력하고 중복 제거", value = DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE, variable = self.__var_duplicate)
+        self.radio_button_duplicate_1.grid(column = 0, row = 0, sticky = "w")
+        self.radio_button_duplicate_2.grid(column = 0, row = 1, sticky = "w")
+        self.radio_button_duplicate_3.grid(column = 0, row = 2, sticky = "w")
+        self.radio_button_duplicate_4.grid(column = 0, row = 3, sticky = "w")
+        self.radio_button_duplicate_5.grid(column = 0, row = 4, sticky = "w")
 
         self.frame_btn = tk.Frame(self.__root)
         self.frame_btn.pack(fill = "x", padx = 10, pady = 10)
@@ -165,6 +203,21 @@ class ColumnIntegrator :
 
             sorted_headers = self.__sort_headers()
             result = result.reindex(columns = sorted_headers)
+            
+            if ui_mgr.get_var_duplicate() != DUPLICATE_OPTION.DO_NOT_DROP :
+                result.sort_values(by = ["GlobalTime"], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
+
+            match (ui_mgr.get_var_duplicate()) :
+                case DUPLICATE_OPTION.DO_NOT_DROP :
+                    pass
+                case DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT :
+                    result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "first", ignore_index = True)
+                case DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT :
+                    result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "last", ignore_index = True)
+                case DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE :
+                    result.drop_duplicates(subset = "sensorID", inplace = True, keep = "first", ignore_index = True)
+                case DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE :
+                    result.drop_duplicates(subset = "sensorID", inplace = True, keep = "last", ignore_index = True)
             
             result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
         
