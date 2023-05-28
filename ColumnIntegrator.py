@@ -98,12 +98,12 @@ class UiMgr :
         self.frame_duplicate_button = tk.Frame(self.__root)
         self.frame_duplicate_button.pack(fill = "x", padx = 10, pady = 10)
         
-        self.radio_button_duplicate_1 = tk.Radiobutton(self.frame_duplicate_button, text = "중복 제거 하지 않음", value = DUPLICATE_OPTION.DO_NOT_DROP, variable = self.__var_duplicate)
+        self.radio_button_duplicate_1 = tk.Radiobutton(self.frame_duplicate_button, text = "중복 제거 하지 않음", value = int(DUPLICATE_OPTION.DO_NOT_DROP), variable = self.__var_duplicate)
         self.radio_button_duplicate_1.select()
-        self.radio_button_duplicate_2 = tk.Radiobutton(self.frame_duplicate_button, text = "각 랏의 첫 검사만 남기고 중복 제거", value = DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT, variable = self.__var_duplicate)
-        self.radio_button_duplicate_3 = tk.Radiobutton(self.frame_duplicate_button, text = "각 랏의 마지막 검사만 남기고 중복 제거", value = DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT, variable = self.__var_duplicate)
-        self.radio_button_duplicate_4 = tk.Radiobutton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 첫 검사만 남기고 중복 제거", value = DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE, variable = self.__var_duplicate)
-        self.radio_button_duplicate_5 = tk.Radiobutton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 마지막 검사만 남기고 중복 제거", value = DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE, variable = self.__var_duplicate)
+        self.radio_button_duplicate_2 = tk.Radiobutton(self.frame_duplicate_button, text = "각 랏의 첫 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT), variable = self.__var_duplicate)
+        self.radio_button_duplicate_3 = tk.Radiobutton(self.frame_duplicate_button, text = "각 랏의 마지막 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT), variable = self.__var_duplicate)
+        self.radio_button_duplicate_4 = tk.Radiobutton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 첫 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE), variable = self.__var_duplicate)
+        self.radio_button_duplicate_5 = tk.Radiobutton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 마지막 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE), variable = self.__var_duplicate)
         self.radio_button_duplicate_1.grid(column = 0, row = 0, sticky = "w")
         self.radio_button_duplicate_2.grid(column = 0, row = 1, sticky = "w")
         self.radio_button_duplicate_3.grid(column = 0, row = 2, sticky = "w")
@@ -204,19 +204,19 @@ class ColumnIntegrator :
             sorted_headers = self.__sort_headers()
             result = result.reindex(columns = sorted_headers)
             
-            if ui_mgr.get_var_duplicate() != DUPLICATE_OPTION.DO_NOT_DROP :
+            if ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP) :
                 result.sort_values(by = ["GlobalTime"], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
 
             match (ui_mgr.get_var_duplicate()) :
-                case DUPLICATE_OPTION.DO_NOT_DROP :
+                case int(DUPLICATE_OPTION.DO_NOT_DROP) :
                     pass
-                case DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT :
+                case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) :
                     result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "first", ignore_index = True)
-                case DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT :
+                case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
                     result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "last", ignore_index = True)
-                case DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE :
+                case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE) :
                     result.drop_duplicates(subset = "sensorID", inplace = True, keep = "first", ignore_index = True)
-                case DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE :
+                case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
                     result.drop_duplicates(subset = "sensorID", inplace = True, keep = "last", ignore_index = True)
             
             result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
