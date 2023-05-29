@@ -10,6 +10,8 @@ import copy
 from enum import auto, IntEnum
 
 
+MSG_INFO = "본 프로그램의 시간순 정렬의 기준은 \"time\"입니다.\n\n본 프로그램에서는 모듈을 \"sensorID\"로 구분합니다. \n\n제작자 : \n\n"
+
 class EnumFromZero(IntEnum) :
     def _generate_next_value_(name, start, count, last_values) :
         return count
@@ -74,6 +76,8 @@ class UiMgr :
         except Exception as e :
             msg.showerror("Error", "Error occurred : " + str(e))
 
+    def __show_info(self) :
+        msg.showinfo("Info", MSG_INFO)
 
     def run_ui(self) :
 
@@ -119,6 +123,8 @@ class UiMgr :
         self.btn_clear.pack(side = "right", padx = 10)
         self.btn_run = tk.Button(self.frame_btn, text = "Run", width = 10, command = self.__execute_integration)
         self.btn_run.pack(side = "right", padx = 10)
+        self.btn_info = tk.Button(self.frame_btn, text = "Info", width = 10, command = self.__show_info)
+        self.btn_info.pack(side = "left", padx = 10)
         
         self.__root.mainloop()
 
