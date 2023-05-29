@@ -204,7 +204,7 @@ class ColumnIntegrator :
         result = result.reindex(columns = sorted_headers)
         
         if ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP) :
-            result.sort_values(by = ["GlobalTime"], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
+            result.sort_values(by = ["time"], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
 
         match (ui_mgr.get_var_duplicate()) :
             case int(DUPLICATE_OPTION.DO_NOT_DROP) :
