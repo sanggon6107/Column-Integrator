@@ -10,7 +10,7 @@ import copy
 from enum import auto, IntEnum
 
 
-MSG_INFO = "본 프로그램의 시간순 정렬의 기준은 \"time\"입니다.\n\n본 프로그램에서는 모듈을 \"sensorID\"로 구분합니다. \n\n제작자 : \n\n"
+MSG_INFO = "* 본 프로그램의 시간순 정렬 기준은 \n\"time\" -> \"Time\" -> \"GlobalTime\" 순 입니다.\n\n* 본 프로그램에서는 모듈을 \"sensorID\"로 구분합니다. \n\n* 파일명을 포함하여 경로상에 \"{\", \"}\"를 포함할 수 없습니다. \n\n* 제작자 : \n\n"
 
 class EnumFromZero(IntEnum) :
     def _generate_next_value_(name, start, count, last_values) :
@@ -209,8 +209,16 @@ class ColumnIntegrator :
         sorted_headers = self.__sort_headers()
         result = result.reindex(columns = sorted_headers)
         
-        if ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP) :
-            result.sort_values(by = ["time"], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
+        sorted_by = ""
+        if "time" in sorted_headers :
+            sorted_by = "time"
+        elif "Time" in sorted_headers :
+            sorted_by = "Time"
+        else :
+            sorted_by = "GlobalTime"
+
+        if (ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP)) :
+            result.sort_values(by = [sorted_by], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
 
         match (ui_mgr.get_var_duplicate()) :
             case int(DUPLICATE_OPTION.DO_NOT_DROP) :
