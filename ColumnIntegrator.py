@@ -13,11 +13,14 @@ from enum import auto, IntEnum
 MSG_INFO = """
   Information
 
-1. 본 프로그램의 시간순 정렬 기준은
-time -> Time -> GlobalTime 순입니다.
+1. 본 프로그램의 시간순 정렬은
+time -> Time -> GlobalTime
+의 우선 순위로 찾아낸 트렌드를 기준으로 정렬합니다.
 
-2. 본 프로그램의 모듈 구분 기준은
-sensorID -> SensorID 순입니다.
+2. 본 프로그램은 센서와 바코드를 동시에 고려하여
+sensorID -> SensorID
+barcode -> Barcode
+의 우선 순위로 찾아낸 트렌드를 기준으로 정렬합니다.
 
 3. 파일명을 포함하여 경로상에 }, {를 포함할 수 없습니다.
 
@@ -230,6 +233,7 @@ class ColumnIntegrator :
         
         time_header = self.__find_header(headers = sorted_headers, list_candidate = ["time", "Time", "GlobalTime"])
         lotnum_header = self.__find_header(headers = sorted_headers, list_candidate = ["lotNum", "LotNum"])
+        barcode_header = self.__find_header(headers = sorted_headers, list_candidate = ["barcode", "Barcode"])
         sensorid_header = self.__find_header(headers = sorted_headers, list_candidate = ["sensorID", "SensorID"])
         
         if (ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP)) :
@@ -239,13 +243,13 @@ class ColumnIntegrator :
             case int(DUPLICATE_OPTION.DO_NOT_DROP) :
                 pass
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) :
-                result.drop_duplicates(subset = [lotnum_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
+                result.drop_duplicates(subset = [lotnum_header, barcode_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
-                result.drop_duplicates(subset = [lotnum_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
+                result.drop_duplicates(subset = [lotnum_header, barcode_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE) :
-                result.drop_duplicates(subset = sensorid_header, inplace = True, keep = "first", ignore_index = True)
+                result.drop_duplicates(subset = [barcode_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
-                result.drop_duplicates(subset = sensorid_header, inplace = True, keep = "last", ignore_index = True)
+                result.drop_duplicates(subset = [barcode_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
         
         result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
 
