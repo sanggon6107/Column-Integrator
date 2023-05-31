@@ -10,8 +10,20 @@ import copy
 from enum import auto, IntEnum
 
 
-MSG_INFO = "* 본 프로그램의 시간순 정렬 기준은 \n\"time\" -> \"Time\" -> \"GlobalTime\" 순 입니다.\n\n* 본 프로그램에서는 모듈을 \"sensorID\"로 구분합니다. \n\n* 파일명을 포함하여 경로상에 \"{\", \"}\"를 포함할 수 없습니다. \n\n* 제작자 : \n\n"
+MSG_INFO = """
+  Information
 
+1. 본 프로그램의 시간순 정렬 기준은
+time -> Time -> GlobalTime 순입니다.
+
+2. 본 프로그램의 모듈 구분 기준은
+sensorID -> SensorID 순입니다.
+
+3. 파일명을 포함하여 경로상에 }, {를 포함할 수 없습니다.
+
+제작자 : 
+
+"""
 class EnumFromZero(IntEnum) :
     def _generate_next_value_(name, start, count, last_values) :
         return count
@@ -195,6 +207,13 @@ class ColumnIntegrator :
 
         return result
 
+    def __find_header(self, headers : list, list_candidate : list) -> str :
+        for candidate in list_candidate :
+            if not candidate in headers :
+                continue
+            return candidate
+        return list_candidate[-1]
+
     def execute(self) :
         split_start = 0
         for row in range(1, len(self.log.data)) :
@@ -209,28 +228,24 @@ class ColumnIntegrator :
         sorted_headers = self.__sort_headers()
         result = result.reindex(columns = sorted_headers)
         
-        sorted_by = ""
-        if "time" in sorted_headers :
-            sorted_by = "time"
-        elif "Time" in sorted_headers :
-            sorted_by = "Time"
-        else :
-            sorted_by = "GlobalTime"
-
+        time_header = self.__find_header(headers = sorted_headers, list_candidate = ["time", "Time", "GlobalTime"])
+        lotnum_header = self.__find_header(headers = sorted_headers, list_candidate = ["lotNum", "LotNum"])
+        sensorid_header = self.__find_header(headers = sorted_headers, list_candidate = ["sensorID", "SensorID"])
+        
         if (ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP)) :
-            result.sort_values(by = [sorted_by], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
+            result.sort_values(by = [time_header], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
 
         match (ui_mgr.get_var_duplicate()) :
             case int(DUPLICATE_OPTION.DO_NOT_DROP) :
                 pass
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) :
-                result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "first", ignore_index = True)
+                result.drop_duplicates(subset = [lotnum_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
-                result.drop_duplicates(subset = ["lotNum", "sensorID"], inplace = True, keep = "last", ignore_index = True)
+                result.drop_duplicates(subset = [lotnum_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE) :
-                result.drop_duplicates(subset = "sensorID", inplace = True, keep = "first", ignore_index = True)
+                result.drop_duplicates(subset = sensorid_header, inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
-                result.drop_duplicates(subset = "sensorID", inplace = True, keep = "last", ignore_index = True)
+                result.drop_duplicates(subset = sensorid_header, inplace = True, keep = "last", ignore_index = True)
         
         result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
 
