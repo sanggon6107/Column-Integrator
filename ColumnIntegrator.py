@@ -28,6 +28,9 @@ barcode -> Barcode
 제작자 : 
 
 """
+
+EXPLANATION_MSG_DEFAULT = "파일을 드래그하여 리스트에 추가할 수 있습니다. csv 확장자가 아닌 파일은 추가할 수 없습니다."
+
 class EnumFromZero(IntEnum) :
     def _generate_next_value_(name, start, count, last_values) :
         return count
@@ -71,7 +74,8 @@ MODULE_IDENTIFICATION_MSG = ModuleIdentificationInfo(
     OS Test 불량 등으로 인해 센서아이디가 0으로 기재되는 경우
     다른 테스트 데이터와 동일 모듈로 인식하지 못할 수 있습니다.""", 
     auto = """프로그램 내부 알고리즘을 사용합니다.
-    센서 아이디 혹은 바코드 중 하나가 적혀있지 않더라도 모듈을 추정하여 구분합니다."""
+    센서 아이디와 바코드 중 하나가 적혀있지 않더라도 다른 데이터와 비교 및 추정하여
+    동일 모듈을 식별할 수 있습니다."""
 )
 
 class UiMgr :
@@ -140,7 +144,7 @@ class UiMgr :
                 self.label_explanation.config(text = MODULE_IDENTIFICATION_MSG.auto)
         
     def __event_button_leave(self, event) :
-        self.label_explanation.config(text = "")
+        self.label_explanation.config(text = EXPLANATION_MSG_DEFAULT)
 
     def run_ui(self) :
 
@@ -211,7 +215,7 @@ class UiMgr :
         
         self.frame_explanation = tk.Frame(self.__root)
         self.frame_explanation.pack(fill = "x", padx = 10, pady = 15)
-        self.label_explanation = tk.Label(self.frame_explanation, text = "")
+        self.label_explanation = tk.Label(self.frame_explanation, text = EXPLANATION_MSG_DEFAULT)
         self.label_explanation.pack(fill = "x")
         self.radio_button_identification_1.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.SENSOR_ID))
         self.radio_button_identification_1.bind("<Leave>", self.__event_button_leave)
