@@ -14,14 +14,14 @@ from dataclasses import dataclass
 MSG_INFO = """
   Information
 
-1. 본 프로그램의 시간순 정렬은
+1. 본 프로그램의 시간 헤더 인식은
 time -> Time -> GlobalTime
-의 우선 순위로 찾아낸 트렌드를 기준으로 정렬합니다.
+순서입니다.
 
-2. 본 프로그램은 센서와 바코드를 동시에 고려하여
+2. 본 프로그램의 센서 아이디 및 바코드 헤더 인식은
 sensorID -> SensorID
 barcode -> Barcode
-의 우선 순위로 찾아낸 트렌드를 기준으로 모듈을 구분합니다. 따라서 sensor id와 barcode가 모두 동일한 모듈인 경우에만 같은 모듈로 간주하며, 둘 중 하나의 트렌드만 기록된 로그는 기록된 트렌드만을 기준으로 구분합니다.
+순서입니다.
 
 3. 파일명을 포함하여 경로상에 }, {를 포함할 수 없습니다.
 
@@ -45,18 +45,41 @@ class DUPLICATE_OPTION(EnumFromZero) :
     LEAVE_FIRST_FROM_WHOLE = auto()
     LEAVE_LAST_FROM_WHOLE = auto()
 
+class IDENTIFICATION_OPTION(EnumFromZero) :
+    SENSOR_ID = auto()
+    BARCODE = auto()
+    SENSOR_ID_AND_BARCODE = auto()
+    AUTO = auto()
+
 @dataclass
 class ModuleInfo :
     sensorid : str = None
     barcode : str = None
     temporary_module_id : int = None
 
+@dataclass
+class ModuleIdentificationInfo :
+    sensorid : str = None
+    barcode : str = None
+    sensorid_and_barcode : str = None
+    auto : str = None
+
+MODULE_IDENTIFICATION_MSG = ModuleIdentificationInfo(
+    sensorid = "센서 아이디를 기준으로 모듈을 구분합니다.",
+    barcode = "바코드를 기준으로 모듈을 구분합니다.", 
+    sensorid_and_barcode = """센서 아이디와 바코드가 모두 같아야 동일 모듈로 구분합니다.
+    OS Test 불량 등으로 인해 센서아이디가 0으로 기재되는 경우
+    다른 테스트 데이터와 동일 모듈로 인식하지 못할 수 있습니다.""", 
+    auto = """프로그램 내부 알고리즘을 사용합니다.
+    센서 아이디 혹은 바코드 중 하나가 적혀있지 않더라도 모듈을 추정하여 구분합니다."""
+)
+
 class UiMgr :
     def __init__(self) :
         
         self.__root = dnd.Tk()
         self.__root.title("Column Integrator")
-        self.__root.geometry("640x600+100+100")
+        self.__root.geometry("650x760+100+100")
         self.__root.resizable(False, False)
 
         self.__font_title = tk_font.Font(family = "Consolas", size = 17)
@@ -64,9 +87,13 @@ class UiMgr :
         self.__list_full_path = []
         self.__list_file = []
 
+        self.__var_identification = tk.IntVar()
         self.__var_duplicate = tk.IntVar()
         
         self.regex_file = re.compile("([a-zA-Z]{1}:[^}{]+?)([^/]+?\.[cC][sS][vV])")
+
+    def get_var_identification(self) -> int :
+        return self.__var_identification.get()
 
     def get_var_duplicate(self) -> int :
         return self.__var_duplicate.get()
@@ -101,6 +128,20 @@ class UiMgr :
     def __show_info(self) :
         msg.showinfo("Info", MSG_INFO)
 
+    def __event_button_enter(self, identification_option : IDENTIFICATION_OPTION) :
+        match (identification_option) :
+            case IDENTIFICATION_OPTION.SENSOR_ID :
+                self.label_explanation.config(text = MODULE_IDENTIFICATION_MSG.sensorid)
+            case IDENTIFICATION_OPTION.BARCODE :
+                self.label_explanation.config(text = MODULE_IDENTIFICATION_MSG.barcode)
+            case IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE :
+                self.label_explanation.config(text = MODULE_IDENTIFICATION_MSG.sensorid_and_barcode)
+            case IDENTIFICATION_OPTION.AUTO :
+                self.label_explanation.config(text = MODULE_IDENTIFICATION_MSG.auto)
+        
+    def __event_button_leave(self, event) :
+        self.label_explanation.config(text = "")
+
     def run_ui(self) :
 
         self.frame_title = tk.Frame(self.__root, height = 15)
@@ -115,26 +156,46 @@ class UiMgr :
         self.scrollbar_listbox = tk.Scrollbar(self.frame_listbox)
         self.scrollbar_listbox.pack(side = "right", fill = "y")
         
-        self.list_box = tk.Listbox(self.frame_listbox, selectmode = "extended", height = 20, yscrollcommand=self.scrollbar_listbox.set)
+        self.list_box = tk.Listbox(self.frame_listbox, selectmode = "extended", height = 15, yscrollcommand=self.scrollbar_listbox.set)
         self.list_box.pack(side = "left", fill = "both", expand = True, padx = 10)
         self.scrollbar_listbox.config(command = self.list_box.yview)
         self.list_box.drop_target_register(dnd.DND_FILES)
         self.list_box.dnd_bind("<<Drop>>", self.__add_listbox)
         
-        self.frame_duplicate_button = tk.Frame(self.__root)
+        self.frame_identification_button = tk.Frame(self.__root, relief = "solid", bd = 1)
+        self.frame_identification_button.pack(fill = "x", padx = 10, pady = 10)
+
+        self.label_identification = tk.Label(self.frame_identification_button, text = "모듈 구분 기준")
+        self.radio_button_identification_1 = tk.Radiobutton(self.frame_identification_button, text = "센서 아이디", value = int(IDENTIFICATION_OPTION.SENSOR_ID), variable = self.__var_identification)
+        self.radio_button_identification_1.select()
+        self.radio_button_identification_2 = tk.Radiobutton(self.frame_identification_button, text = "바코드", value = int(IDENTIFICATION_OPTION.BARCODE), variable = self.__var_identification)
+        self.radio_button_identification_3 = tk.Radiobutton(self.frame_identification_button, text = "센서 아이디와 바코드", value = int(IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE), variable = self.__var_identification)
+        self.radio_button_identification_4 = tk.Radiobutton(self.frame_identification_button, text = "알아서 구분", value = int(IDENTIFICATION_OPTION.AUTO), variable = self.__var_identification)
+
+        self.label_identification.grid(column = 0, row = 0, sticky = "w")
+        self.radio_button_identification_1.grid(column = 0, row = 1, sticky = "w")
+        self.radio_button_identification_2.grid(column = 0, row = 2, sticky = "w")
+        self.radio_button_identification_3.grid(column = 0, row = 3, sticky = "w")
+        self.radio_button_identification_4.grid(column = 0, row = 4, sticky = "w")
+
+
+        self.frame_duplicate_button = tk.Frame(self.__root, relief = "solid", bd = 1)
         self.frame_duplicate_button.pack(fill = "x", padx = 10, pady = 10)
-        
+
+        self.label_duplicate = tk.Label(self.frame_duplicate_button, text = "중복 제거 옵션")
         self.radio_button_duplicate_1 = tk.Radiobutton(self.frame_duplicate_button, text = "중복 제거 하지 않음", value = int(DUPLICATE_OPTION.DO_NOT_DROP), variable = self.__var_duplicate)
         self.radio_button_duplicate_1.select()
         self.radio_button_duplicate_2 = tk.Radiobutton(self.frame_duplicate_button, text = "각 랏의 첫 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT), variable = self.__var_duplicate)
         self.radio_button_duplicate_3 = tk.Radiobutton(self.frame_duplicate_button, text = "각 랏의 마지막 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT), variable = self.__var_duplicate)
         self.radio_button_duplicate_4 = tk.Radiobutton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 첫 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE), variable = self.__var_duplicate)
         self.radio_button_duplicate_5 = tk.Radiobutton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 마지막 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE), variable = self.__var_duplicate)
-        self.radio_button_duplicate_1.grid(column = 0, row = 0, sticky = "w")
-        self.radio_button_duplicate_2.grid(column = 0, row = 1, sticky = "w")
-        self.radio_button_duplicate_3.grid(column = 0, row = 2, sticky = "w")
-        self.radio_button_duplicate_4.grid(column = 0, row = 3, sticky = "w")
-        self.radio_button_duplicate_5.grid(column = 0, row = 4, sticky = "w")
+        
+        self.label_duplicate.grid(column = 0, row = 0, sticky = "w")
+        self.radio_button_duplicate_1.grid(column = 0, row = 1, sticky = "w")
+        self.radio_button_duplicate_2.grid(column = 0, row = 2, sticky = "w")
+        self.radio_button_duplicate_3.grid(column = 0, row = 3, sticky = "w")
+        self.radio_button_duplicate_4.grid(column = 0, row = 4, sticky = "w")
+        self.radio_button_duplicate_5.grid(column = 0, row = 5, sticky = "w")
 
         self.frame_btn = tk.Frame(self.__root)
         self.frame_btn.pack(fill = "x", padx = 10, pady = 10)
@@ -148,6 +209,19 @@ class UiMgr :
         self.btn_info = tk.Button(self.frame_btn, text = "Info", width = 10, command = self.__show_info)
         self.btn_info.pack(side = "left", padx = 10)
         
+        self.frame_explanation = tk.Frame(self.__root)
+        self.frame_explanation.pack(fill = "x", padx = 10, pady = 15)
+        self.label_explanation = tk.Label(self.frame_explanation, text = "")
+        self.label_explanation.pack(fill = "x")
+        self.radio_button_identification_1.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.SENSOR_ID))
+        self.radio_button_identification_1.bind("<Leave>", self.__event_button_leave)
+        self.radio_button_identification_2.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.BARCODE))
+        self.radio_button_identification_2.bind("<Leave>", self.__event_button_leave)
+        self.radio_button_identification_3.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE))
+        self.radio_button_identification_3.bind("<Leave>", self.__event_button_leave)
+        self.radio_button_identification_4.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.AUTO))
+        self.radio_button_identification_4.bind("<Leave>", self.__event_button_leave)
+
         self.__root.mainloop()
 
 
@@ -280,22 +354,33 @@ class ColumnIntegrator :
         if (ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP)) :
             self.__result.sort_values(by = [time_header], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
 
+        subset_duplicate = []
+        if ui_mgr.get_var_duplicate() == int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) or ui_mgr.get_var_duplicate() == int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
+            subset_duplicate.append(lotnum_header)
+        match (ui_mgr.get_var_identification()) :
+            case int(IDENTIFICATION_OPTION.SENSOR_ID) :
+                subset_duplicate.append(sensorid_header)
+            case int(IDENTIFICATION_OPTION.BARCODE) :
+                subset_duplicate.append(barcode_header)
+            case int(IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE) :
+                subset_duplicate.append(sensorid_header)
+                subset_duplicate.append(barcode_header)
+            case int(IDENTIFICATION_OPTION.AUTO) :
+                subset_duplicate.append("temporary_module_id")
+
         match (ui_mgr.get_var_duplicate()) :
             case int(DUPLICATE_OPTION.DO_NOT_DROP) :
                 pass
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) :
-                #self.__result.drop_duplicates(subset = [lotnum_header, barcode_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
-                self.__result.drop_duplicates(subset = [lotnum_header, "temporary_module_id"], inplace = True, keep = "first", ignore_index = True)
+                self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
-                #self.__result.drop_duplicates(subset = [lotnum_header, barcode_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
-                self.__result.drop_duplicates(subset = [lotnum_header, "temporary_module_id"], inplace = True, keep = "last", ignore_index = True)
+                self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "last", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE) :
-                #self.__result.drop_duplicates(subset = [barcode_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
-                self.__result.drop_duplicates(subset = ["temporary_module_id"], inplace = True, keep = "first", ignore_index = True)
+                self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
-                #self.__result.drop_duplicates(subset = [barcode_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
-                self.__result.drop_duplicates(subset = ["temporary_module_id"], inplace = True, keep = "last", ignore_index = True)
+                self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "last", ignore_index = True)
         
+        self.__result.drop(["temporary_module_id"], axis = 1, inplace = True)
         self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
 
 
