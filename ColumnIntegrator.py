@@ -8,6 +8,7 @@ import pandas as pd
 import csv
 import copy
 from enum import auto, IntEnum
+from dataclasses import dataclass
 
 
 MSG_INFO = """
@@ -20,7 +21,7 @@ time -> Time -> GlobalTime
 2. 본 프로그램은 센서와 바코드를 동시에 고려하여
 sensorID -> SensorID
 barcode -> Barcode
-의 우선 순위로 찾아낸 트렌드를 기준으로 정렬합니다.
+의 우선 순위로 찾아낸 트렌드를 기준으로 모듈을 구분합니다. 따라서 sensor id와 barcode가 모두 동일한 모듈인 경우에만 같은 모듈로 간주하며, 둘 중 하나의 트렌드만 기록된 로그는 기록된 트렌드만을 기준으로 구분합니다.
 
 3. 파일명을 포함하여 경로상에 }, {를 포함할 수 없습니다.
 
@@ -43,6 +44,12 @@ class DUPLICATE_OPTION(EnumFromZero) :
     LEAVE_LAST_FROM_EACH_LOT = auto()
     LEAVE_FIRST_FROM_WHOLE = auto()
     LEAVE_LAST_FROM_WHOLE = auto()
+
+@dataclass
+class ModuleInfo :
+    sensorid : str = None
+    barcode : str = None
+    temporary_module_id : int = None
 
 class UiMgr :
     def __init__(self) :
@@ -196,6 +203,7 @@ class ColumnIntegrator :
         self.log = CsvFile(file_name, no_header=True)
         self.__df_list = []
         self.__file_name = file_name
+        self.__result = pd.DataFrame()
 
     def __sort_headers(self) -> pd.DataFrame :
         headers_list = []
@@ -217,6 +225,37 @@ class ColumnIntegrator :
             return candidate
         return list_candidate[-1]
 
+    def __is_empty(self, row, column) -> bool :
+        return self.__result.loc[row, column] == "" or self.__result.loc[row, column] == "0"
+
+    def __make_temporary_module_id(self, sensorid_header : str, barcode_header : str) -> pd.DataFrame :
+        self.__result["temporary_module_id"] = ""
+        module_list : list[ModuleInfo] = []
+
+        for row in range(len(self.__result)) :
+            exist_temporary_module_id = False
+            if self.__is_empty(row, sensorid_header) == False and exist_temporary_module_id == False :
+                for module in module_list :
+                    if module.sensorid != self.__result.loc[row, sensorid_header] : continue
+                    exist_temporary_module_id = True
+                    self.__result.loc[row, "temporary_module_id"] = str(module.temporary_module_id)
+                    if self.__is_empty(row, barcode_header) == False and (module.barcode == "" or module.barcode == "0") :
+                        module.barcode = self.__result.loc[row, barcode_header]
+            
+            if self.__is_empty(row, barcode_header) == False and exist_temporary_module_id == False :
+                for module in module_list :
+                    if module.barcode != self.__result.loc[row, barcode_header] : continue
+                    exist_temporary_module_id = True
+                    self.__result.loc[row, "temporary_module_id"] = str(module.temporary_module_id)
+                    if self.__is_empty(row, sensorid_header) == False and (module.sensorid == "" or module.sensorid == "0") :
+                        module.sensorid = self.__result.loc[row, sensorid_header]
+
+            if exist_temporary_module_id == True : continue
+
+            self.__result.loc[row, "temporary_module_id"] = str(len(module_list) + 1)
+            module_list.append(ModuleInfo(sensorid = self.__result.loc[row, sensorid_header], barcode = self.__result.loc[row, barcode_header], temporary_module_id = len(module_list) + 1))
+        
+
     def execute(self) :
         split_start = 0
         for row in range(1, len(self.log.data)) :
@@ -226,32 +265,38 @@ class ColumnIntegrator :
         self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=len(self.log.data)))
 
         self.__df_list.sort(key=lambda x : len(x.columns), reverse=True)
-        result = pd.concat(self.__df_list, ignore_index=True)
+        self.__result = pd.concat(self.__df_list, ignore_index=True)
 
         sorted_headers = self.__sort_headers()
-        result = result.reindex(columns = sorted_headers)
+        self.__result = self.__result.reindex(columns = sorted_headers)
         
         time_header = self.__find_header(headers = sorted_headers, list_candidate = ["time", "Time", "GlobalTime"])
         lotnum_header = self.__find_header(headers = sorted_headers, list_candidate = ["lotNum", "LotNum"])
         barcode_header = self.__find_header(headers = sorted_headers, list_candidate = ["barcode", "Barcode"])
         sensorid_header = self.__find_header(headers = sorted_headers, list_candidate = ["sensorID", "SensorID"])
-        
+
+        self.__make_temporary_module_id(sensorid_header = sensorid_header, barcode_header = barcode_header)
+
         if (ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP)) :
-            result.sort_values(by = [time_header], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
+            self.__result.sort_values(by = [time_header], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
 
         match (ui_mgr.get_var_duplicate()) :
             case int(DUPLICATE_OPTION.DO_NOT_DROP) :
                 pass
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) :
-                result.drop_duplicates(subset = [lotnum_header, barcode_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
+                #self.__result.drop_duplicates(subset = [lotnum_header, barcode_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
+                self.__result.drop_duplicates(subset = [lotnum_header, "temporary_module_id"], inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
-                result.drop_duplicates(subset = [lotnum_header, barcode_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
+                #self.__result.drop_duplicates(subset = [lotnum_header, barcode_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
+                self.__result.drop_duplicates(subset = [lotnum_header, "temporary_module_id"], inplace = True, keep = "last", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE) :
-                result.drop_duplicates(subset = [barcode_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
+                #self.__result.drop_duplicates(subset = [barcode_header, sensorid_header], inplace = True, keep = "first", ignore_index = True)
+                self.__result.drop_duplicates(subset = ["temporary_module_id"], inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
-                result.drop_duplicates(subset = [barcode_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
+                #self.__result.drop_duplicates(subset = [barcode_header, sensorid_header], inplace = True, keep = "last", ignore_index = True)
+                self.__result.drop_duplicates(subset = ["temporary_module_id"], inplace = True, keep = "last", ignore_index = True)
         
-        result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
+        self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
 
 
 if __name__ == "__main__" :
