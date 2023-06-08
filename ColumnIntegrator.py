@@ -230,9 +230,9 @@ class UiMgr :
 
 
 class CsvFile :
-    def __init__(self, file_name, no_header=False) :
+    def __init__(self, file_name, no_header=False, codec='utf-8') :
         if no_header :
-            f = open(file_name, encoding='utf-8')
+            f = open(file_name, encoding=codec)
             reader = csv.reader(f)
             csv_list = []
             for i in reader :
@@ -278,10 +278,19 @@ class CsvFile :
 
 class ColumnIntegrator :
     def __init__(self, file_name : str) :
-        self.log = CsvFile(file_name, no_header=True)
         self.__df_list = []
         self.__file_name = file_name
         self.__result = pd.DataFrame()
+        self.codec = 'utf-8'
+        try :
+            self.log = CsvFile(file_name, no_header=True, codec = self.codec)
+        except :
+            try :
+                self.codec = 'cp949'
+                self.log = CsvFile(file_name, no_header=True, codec = self.codec)
+            except :
+                self.codec = 'euc-kr'
+                self.log = CsvFile(file_name, no_header=True, codec = self.codec)
 
     def __sort_headers(self) -> pd.DataFrame :
         headers_list = []
@@ -385,7 +394,7 @@ class ColumnIntegrator :
                 self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "last", ignore_index = True)
         
         self.__result.drop(["temporary_module_id"], axis = 1, inplace = True)
-        self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index=None)
+        self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index = None, encoding = self.codec)
 
 
 if __name__ == "__main__" :
