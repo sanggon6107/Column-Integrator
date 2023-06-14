@@ -94,7 +94,7 @@ class UiMgr :
         self.__var_identification = tk.IntVar()
         self.__var_duplicate = tk.IntVar()
         
-        self.regex_file = re.compile("([a-zA-Z]{1}:[^}{]+?)([^/]+?\.[cC][sS][vV])")
+        self.regex_file = re.compile("([a-zA-Z]{1}:[^}{:]+?)([^/]+?\.[cC][sS][vV])")
 
     def get_var_identification(self) -> int :
         return self.__var_identification.get()
