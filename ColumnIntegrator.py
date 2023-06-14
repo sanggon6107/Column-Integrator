@@ -278,7 +278,7 @@ class CsvFile :
 
 class ColumnIntegrator :
     def __init__(self, file_name : str) :
-        self.__df_list = []
+        self.__df_list : list[pd.DataFrame] = []
         self.__file_name = file_name
         self.__result = pd.DataFrame()
         self.codec = 'utf-8'
@@ -341,7 +341,11 @@ class ColumnIntegrator :
 
             self.__result.loc[row, "temporary_module_id"] = str(len(module_list) + 1)
             module_list.append(ModuleInfo(sensorid = self.__result.loc[row, sensorid_header], barcode = self.__result.loc[row, barcode_header], temporary_module_id = len(module_list) + 1))
-        
+
+    def remove_unexpected_columns(self) :
+        for df in self.__df_list :
+            if not None in df.columns : continue
+            df.drop([None], axis = 1, inplace = True)
 
     def execute(self) :
         split_start = 0
@@ -352,6 +356,7 @@ class ColumnIntegrator :
         self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=len(self.log.data)))
 
         self.__df_list.sort(key=lambda x : len(x.columns), reverse=True)
+        self.remove_unexpected_columns()
         self.__result = pd.concat(self.__df_list, ignore_index=True)
 
         sorted_headers = self.__sort_headers()
