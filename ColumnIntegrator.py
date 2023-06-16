@@ -346,6 +346,8 @@ class ColumnIntegrator :
         for df in self.__df_list :
             if not None in df.columns : continue
             df.drop([None], axis = 1, inplace = True)
+            if not "" in df.columns : continue
+            df.drop("", axis = 1, inplace = True)
 
     def execute(self) :
         split_start = 0
