@@ -1,8 +1,8 @@
 from mimetypes import init
 import tkinter as tk
-import tkinter.messagebox as msg
 import tkinterdnd2 as dnd
 import customtkinter as ck
+from tkinter import font
 import CTkMessagebox
 import re
 import pandas as pd
@@ -93,12 +93,13 @@ class UiMgr :
         
         self.__root = TkWrapper()
         self.__root.title("Column Integrator")
-        self.__root.geometry("650x800+100+100")
+        self.__root.geometry("700x900+100+100")
         self.__root.resizable(False, False)
         self.__root.overrideredirect(True)
 
         self.__font_title = ck.CTkFont(family = "Century Gothic", size = 24)
         self.__font_title_bold = ck.CTkFont(family = "Century Gothic", size = 24, weight = "bold")
+        self.__font_listbox = font.Font(size = 15)
 
         self.__list_full_path = []
         self.__list_file = []
@@ -217,7 +218,7 @@ class UiMgr :
         self.scrollbar_listbox = ck.CTkScrollbar(self.frame_listbox)
         self.scrollbar_listbox.pack(side = "right", fill = "y")
         
-        self.list_box = tk.Listbox(self.frame_listbox, selectmode = "extended", height = 15, background = "gray25", foreground = "white", yscrollcommand=self.scrollbar_listbox.set)
+        self.list_box = tk.Listbox(self.frame_listbox, selectmode = "extended", height = 15, background = "gray25", foreground = "white", font = self.__font_listbox, yscrollcommand=self.scrollbar_listbox.set)
         self.list_box.pack(side = "left", fill = "both", expand = True, padx = 10)
         self.scrollbar_listbox.configure(command = self.list_box.yview)
         self.list_box.drop_target_register(dnd.DND_FILES)
