@@ -10,6 +10,7 @@ import csv
 import copy
 from enum import auto, IntEnum
 from dataclasses import dataclass
+from ctypes import windll
 
 
 MSG_INFO = """
@@ -115,6 +116,18 @@ class UiMgr :
     def get_var_duplicate(self) -> int :
         return self.__var_duplicate.get()
 
+    def __set_window(self) :
+        GWL_EXSTYLE = -20
+        WS_EX_APPWINDOW = 0x00040000
+        WS_EX_TOOLWINDOW = 0x00000080
+        hwnd = windll.user32.GetParent(self.__root.winfo_id())
+        style = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+        style = style & ~WS_EX_TOOLWINDOW
+        style = style | WS_EX_APPWINDOW
+        res = windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+        self.__root.wm_withdraw()
+        self.__root.after(0, lambda: self.__root.wm_deiconify())
+
     def __start_move_window(self, event) :
         self.__pre_x = event.x
         self.__pre_y = event.y
@@ -148,7 +161,6 @@ class UiMgr :
         self.__list_file.clear()
 
     def __execute_integration(self) :
-        self.list_box.config(background = "gray25")
         complete_flag : bool = True
         if len(self.__list_full_path) == 0 :
             CTkMessagebox.CTkMessagebox(title = "Info", message = "List is empty", icon = "warning")
@@ -183,6 +195,8 @@ class UiMgr :
         self.label_explanation.configure(text = EXPLANATION_MSG_DEFAULT)
 
     def run_ui(self) :
+
+        self.__root.after(0, self.__set_window)
 
         self.frame_title = ck.CTkFrame(self.__root, height = 15, fg_color = "transparent")
         self.frame_title.pack(fill = "x", padx = 10, pady = 10)
