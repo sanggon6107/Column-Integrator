@@ -401,10 +401,10 @@ class ColumnIntegrator :
 
     def remove_unexpected_columns(self) :
         for df in self.__df_list :
-            if not None in df.columns : continue
-            df.drop([None], axis = 1, inplace = True)
-            if not "" in df.columns : continue
-            df.drop("", axis = 1, inplace = True)
+            if None in df.columns :
+                df.drop([None], axis = 1, inplace = True)
+            if "" in df.columns :
+                df.drop("", axis = 1, inplace = True)
 
     def execute(self) :
         split_start = 0
@@ -426,8 +426,6 @@ class ColumnIntegrator :
         barcode_header = self.__find_header(headers = sorted_headers, list_candidate = ["barcode", "Barcode"])
         sensorid_header = self.__find_header(headers = sorted_headers, list_candidate = ["sensorID", "SensorID"])
 
-        self.__make_temporary_module_id(sensorid_header = sensorid_header, barcode_header = barcode_header)
-
         if (ui_mgr.get_var_duplicate() != int(DUPLICATE_OPTION.DO_NOT_DROP)) :
             self.__result.sort_values(by = [time_header], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
 
@@ -443,6 +441,7 @@ class ColumnIntegrator :
                 subset_duplicate.append(sensorid_header)
                 subset_duplicate.append(barcode_header)
             case int(IDENTIFICATION_OPTION.AUTO) :
+                self.__make_temporary_module_id(sensorid_header = sensorid_header, barcode_header = barcode_header)
                 subset_duplicate.append("temporary_module_id")
 
         match (ui_mgr.get_var_duplicate()) :
@@ -457,7 +456,8 @@ class ColumnIntegrator :
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
                 self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "last", ignore_index = True)
         
-        self.__result.drop(["temporary_module_id"], axis = 1, inplace = True)
+        if ui_mgr.get_var_duplicate() == int(IDENTIFICATION_OPTION.AUTO) :
+            self.__result.drop(["temporary_module_id"], axis = 1, inplace = True)
         self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index = None, encoding = self.codec)
 
 
