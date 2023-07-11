@@ -1,0 +1,1 @@
+go build -a -buildmode=c-shared -ldflags="-w -s -H=windowsgui" -o MakeTemporaryModuleIdGo.dll MakeTemporaryModuleIdGo/MakeTemporaryModuleIdGo.go

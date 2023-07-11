@@ -11,6 +11,7 @@ import copy
 from enum import auto, IntEnum
 from dataclasses import dataclass
 from ctypes import windll
+from DllMgrTemporaryModuleId import *
 
 
 MSG_INFO = """
@@ -110,6 +111,13 @@ class UiMgr :
         self.__pre_x, self.__pre_y = self.__root.winfo_pointerxy()
         
         self.regex_file = re.compile("([a-zA-Z]{1}:[^}{:]+?)([^/]+?\.[cC][sS][vV])")
+
+        self.exist_dll = True
+        try :
+            self.dll_mgr_temporary_module_id_go = DllMgrTemporaryModuleId("./MakeTemporaryModuleIdGo.dll")
+        except :
+            self.exist_dll = False
+        
 
     def get_var_identification(self) -> int :
         return self.__var_identification.get()
@@ -373,7 +381,7 @@ class ColumnIntegrator :
     def __is_empty(self, row, column) -> bool :
         return self.__result.loc[row, column] == "" or self.__result.loc[row, column] == "0"
 
-    def __make_temporary_module_id(self, sensorid_header : str, barcode_header : str) -> pd.DataFrame :
+    def __make_temporary_module_id(self, sensorid_header : str, barcode_header : str) :
         self.__result["temporary_module_id"] = ""
         module_list : list[ModuleInfo] = []
 
@@ -399,6 +407,9 @@ class ColumnIntegrator :
 
             self.__result.loc[row, "temporary_module_id"] = str(len(module_list) + 1)
             module_list.append(ModuleInfo(sensorid = self.__result.loc[row, sensorid_header], barcode = self.__result.loc[row, barcode_header], temporary_module_id = len(module_list) + 1))
+
+    def __make_temporary_module_id_go(self, sensorid_header : str, barcode_header : str) :
+        self.__result["temporary_module_id"] = ui_mgr.dll_mgr_temporary_module_id_go.make_temporary_module_id_go(self.__result[sensorid_header].to_list(), self.__result[barcode_header].to_list())
 
     def remove_unexpected_columns(self) :
         for df in self.__df_list :
@@ -442,7 +453,10 @@ class ColumnIntegrator :
                 subset_duplicate.append(sensorid_header)
                 subset_duplicate.append(barcode_header)
             case int(IDENTIFICATION_OPTION.AUTO) :
-                self.__make_temporary_module_id(sensorid_header = sensorid_header, barcode_header = barcode_header)
+                if ui_mgr.exist_dll == True :
+                    self.__make_temporary_module_id_go(sensorid_header = sensorid_header, barcode_header = barcode_header)
+                else :
+                    self.__make_temporary_module_id(sensorid_header = sensorid_header, barcode_header = barcode_header)
                 subset_duplicate.append("temporary_module_id")
 
         match (ui_mgr.get_var_duplicate()) :
@@ -457,7 +471,7 @@ class ColumnIntegrator :
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
                 self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "last", ignore_index = True)
         
-        if ui_mgr.get_var_duplicate() == int(IDENTIFICATION_OPTION.AUTO) :
+        if ui_mgr.get_var_identification() == int(IDENTIFICATION_OPTION.AUTO) :
             self.__result.drop(["temporary_module_id"], axis = 1, inplace = True)
         self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index = None, encoding = self.codec)
 
