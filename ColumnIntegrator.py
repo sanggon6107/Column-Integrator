@@ -1,9 +1,9 @@
 from mimetypes import init
 import tkinter as tk
+from tkinter import messagebox as msg
 import tkinterdnd2 as dnd
 import customtkinter as ck
 from tkinter import font
-import CTkMessagebox
 import re
 import pandas as pd
 import csv
@@ -172,7 +172,7 @@ class UiMgr :
     def __execute_integration(self) :
         complete_flag : bool = True
         if len(self.__list_full_path) == 0 :
-            CTkMessagebox.CTkMessagebox(title = "Info", message = "List is empty", icon = "warning")
+            msg.showerror("Info", "List is empty")
             return
         for file_path in self.__list_full_path :
             try :
@@ -180,14 +180,14 @@ class UiMgr :
                 column_integrator.execute()
                 self.list_box.itemconfig(self.__list_full_path.index(file_path), {"bg" : "light blue"})
             except Exception as e :
-                CTkMessagebox.CTkMessagebox(title = f"{self.__list_file[self.__list_full_path.index(file_path)]}", message = "Error occurred : " + str(e), icon = "cancel")
+                msg.showerror(f"{self.__list_file[self.__list_full_path.index(file_path)]}", "Error occurred : " + str(e))
                 complete_flag = False
                 self.list_box.itemconfig(self.__list_full_path.index(file_path), {"bg" : "tomato"})
         if complete_flag == True :
-            CTkMessagebox.CTkMessagebox(title = "Info", message = "Integration complete", icon = "info")
+            msg.showinfo("Info", "Integration complete")
 
     def __show_info(self) :
-        CTkMessagebox.CTkMessagebox(title = "Info", message = MSG_INFO)
+        msg.showinfo("Info", MSG_INFO)
 
     def __event_button_enter(self, identification_option : IDENTIFICATION_OPTION) :
         match (identification_option) :
