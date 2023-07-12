@@ -57,6 +57,10 @@ class IDENTIFICATION_OPTION(EnumFromZero) :
     SENSOR_ID_AND_BARCODE = auto()
     AUTO = auto()
 
+class SETTING(EnumFromZero) :
+    NO = auto()
+    YES = auto()
+
 @dataclass
 class ModuleInfo :
     sensorid : str = None
@@ -104,9 +108,12 @@ class UiMgr :
 
         self.__list_full_path = []
         self.__list_file = []
+        self.__list_column_integrator : list[ColumnIntegrator] = []
 
         self.__var_identification = tk.IntVar()
         self.__var_duplicate = tk.IntVar()
+        self.__var_check_autorun = tk.IntVar()
+        self.__var_check_autoclear = tk.IntVar()
 
         self.__pre_x, self.__pre_y = self.__root.winfo_pointerxy()
         
@@ -118,7 +125,6 @@ class UiMgr :
         except :
             self.exist_dll = False
         
-
     def get_var_identification(self) -> int :
         return self.__var_identification.get()
 
@@ -161,30 +167,34 @@ class UiMgr :
             full_path_temp = file[0]+file[1]
             if full_path_temp in self.__list_full_path : continue
             self.__list_full_path.append(full_path_temp)
+            self.__list_column_integrator.append(ColumnIntegrator(full_path_temp))
             self.__list_file.append(file[1])
             self.list_box.insert(tk.END, file[1])
+        if self.__var_check_autorun.get() == int(SETTING.YES) : self.__execute_integration()
 
     def __clear(self) :
         self.list_box.delete(0, tk.END)
         self.__list_full_path.clear()
         self.__list_file.clear()
+        self.__list_column_integrator.clear()
 
     def __execute_integration(self) :
-        complete_flag : bool = True
         if len(self.__list_full_path) == 0 :
             msg.showerror("Info", "List is empty")
             return
-        for file_path in self.__list_full_path :
+        flag_complete = True
+        for idx_file in range(len(self.__list_full_path)) :
+            if self.__list_column_integrator[idx_file].flag_executed == True : continue
             try :
-                column_integrator = ColumnIntegrator(file_path)
-                column_integrator.execute()
-                self.list_box.itemconfig(self.__list_full_path.index(file_path), {"bg" : "light blue"})
+                self.__list_column_integrator[idx_file].execute()
+                self.list_box.itemconfig(idx_file, {"bg" : "light blue"})
+                self.__list_column_integrator[idx_file].flag_executed = True
             except Exception as e :
-                msg.showerror(f"{self.__list_file[self.__list_full_path.index(file_path)]}", "Error occurred : " + str(e))
-                complete_flag = False
-                self.list_box.itemconfig(self.__list_full_path.index(file_path), {"bg" : "tomato"})
-        if complete_flag == True :
-            msg.showinfo("Info", "Integration complete")
+                msg.showerror(f"{self.__list_file[idx_file]}", "Error occurred : " + str(e))
+                self.list_box.itemconfig(idx_file, {"bg" : "tomato"})
+                flag_complete = False
+        if flag_complete == True : msg.showinfo("Info", "Integration complete")
+        if self.__var_check_autoclear.get() == int(SETTING.YES) : self.__clear()
 
     def __show_info(self) :
         msg.showinfo("Info", MSG_INFO)
@@ -226,7 +236,7 @@ class UiMgr :
         self.scrollbar_listbox = ck.CTkScrollbar(self.frame_listbox)
         self.scrollbar_listbox.pack(side = "right", fill = "y")
         
-        self.list_box = tk.Listbox(self.frame_listbox, selectmode = "extended", height = 15, background = "gray25", foreground = "white", font = self.__font_listbox, yscrollcommand=self.scrollbar_listbox.set)
+        self.list_box = tk.Listbox(self.frame_listbox, selectmode = "extended", height = 10, background = "gray25", foreground = "white", font = self.__font_listbox, yscrollcommand=self.scrollbar_listbox.set)
         self.list_box.pack(side = "left", fill = "both", expand = True, padx = 10)
         self.scrollbar_listbox.configure(command = self.list_box.yview)
         self.list_box.drop_target_register(dnd.DND_FILES)
@@ -266,6 +276,15 @@ class UiMgr :
         self.radio_button_duplicate_3.grid(column = 0, row = 3, sticky = "w")
         self.radio_button_duplicate_4.grid(column = 0, row = 4, sticky = "w")
         self.radio_button_duplicate_5.grid(column = 0, row = 5, sticky = "w")
+
+        self.frame_auto_run_clear = ck.CTkFrame(self.__root)
+        self.frame_auto_run_clear.pack(fill = "x", padx = 10, pady = 10)
+
+        self.checkbox_autorun = ck.CTkCheckBox(self.frame_auto_run_clear, text = "파일 추가 후 자동 시작", checkbox_height = 17, checkbox_width = 17, height = 25, variable = self.__var_check_autorun)
+        self.checkbox_autoclear = ck.CTkCheckBox(self.frame_auto_run_clear, text = "실행 후 자동 클리어", checkbox_height = 17, checkbox_width = 17, height = 25, variable = self.__var_check_autoclear)
+
+        self.checkbox_autorun.grid(column = 0, row = 0, sticky = "w")
+        self.checkbox_autoclear.grid(column = 0, row = 1, sticky = "w")
 
         self.frame_btn = ck.CTkFrame(self.__root, fg_color = "transparent")
         self.frame_btn.pack(fill = "x", padx = 10, pady = 10)
@@ -348,6 +367,7 @@ class ColumnIntegrator :
         self.__file_name = file_name
         self.__result = pd.DataFrame()
         self.codec = 'utf-8'
+        self.flag_executed = False
         try :
             self.log = CsvFile(file_name, no_header=True, codec = self.codec)
         except :
