@@ -8,83 +8,10 @@ import re
 import pandas as pd
 import csv
 import copy
-from enum import auto, IntEnum
-from dataclasses import dataclass
+
 from ctypes import windll
 from DllMgrTemporaryModuleId import *
-
-
-MSG_INFO = """
-  Information
-
-1. 본 프로그램의 시간 헤더 인식은
-time -> Time -> GlobalTime
-순서입니다.
-
-2. 본 프로그램의 센서 아이디 및 바코드 헤더 인식은
-sensorID -> SensorID
-barcode -> Barcode
-순서입니다.
-
-3. 파일명을 포함하여 경로상에 }, {를 포함할 수 없습니다.
-
-제작자 : 
-
-"""
-
-EXPLANATION_MSG_DEFAULT = "파일을 드래그하여 리스트에 추가할 수 있습니다. csv 확장자가 아닌 파일은 추가할 수 없습니다."
-
-class EnumFromZero(IntEnum) :
-    def _generate_next_value_(name, start, count, last_values) :
-        return count
-
-    def __str__(self) :
-        return self.name
-
-    def __repr__(self) :
-        return self.name
-
-class DUPLICATE_OPTION(EnumFromZero) :
-    DO_NOT_DROP = auto()
-    LEAVE_FIRST_FROM_EACH_LOT = auto()
-    LEAVE_LAST_FROM_EACH_LOT = auto()
-    LEAVE_FIRST_FROM_WHOLE = auto()
-    LEAVE_LAST_FROM_WHOLE = auto()
-
-class IDENTIFICATION_OPTION(EnumFromZero) :
-    SENSOR_ID = auto()
-    BARCODE = auto()
-    SENSOR_ID_AND_BARCODE = auto()
-    AUTO = auto()
-
-class SETTING(EnumFromZero) :
-    NO = auto()
-    YES = auto()
-
-@dataclass
-class ModuleInfo :
-    sensorid : str = None
-    barcode : str = None
-    temporary_module_id : int = None
-
-@dataclass
-class ModuleIdentificationInfo :
-    sensorid : str = None
-    barcode : str = None
-    sensorid_and_barcode : str = None
-    auto : str = None
-
-MODULE_IDENTIFICATION_MSG = ModuleIdentificationInfo(
-    sensorid = "센서 아이디를 기준으로 모듈을 구분합니다.",
-    barcode = "바코드를 기준으로 모듈을 구분합니다.", 
-    sensorid_and_barcode = """센서 아이디와 바코드가 모두 같아야 동일 모듈로 구분합니다.
-    OS Test 불량 등으로 인해 센서아이디가 0으로 기재되는 경우
-    다른 테스트 데이터와 동일 모듈로 인식하지 못할 수 있습니다.""", 
-    auto = """프로그램 내부 알고리즘을 사용합니다.
-    센서 아이디와 바코드 중 하나가 적혀있지 않더라도 다른 데이터와 비교 및 추정하여
-    동일 모듈을 식별할 수 있습니다."""
-)
-
+from GlobalVariables import *
 
 class TkWrapper(ck.CTk, dnd.TkinterDnD.DnDWrapper) :
     def __init__ (self, *args, **kwargs) :
@@ -199,19 +126,28 @@ class UiMgr :
     def __show_info(self) :
         msg.showinfo("Info", MSG_INFO)
 
-    def __event_button_enter(self, identification_option : IDENTIFICATION_OPTION) :
-        match (identification_option) :
-            case IDENTIFICATION_OPTION.SENSOR_ID :
-                self.label_explanation.configure(text = MODULE_IDENTIFICATION_MSG.sensorid)
-            case IDENTIFICATION_OPTION.BARCODE :
-                self.label_explanation.configure(text = MODULE_IDENTIFICATION_MSG.barcode)
-            case IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE :
-                self.label_explanation.configure(text = MODULE_IDENTIFICATION_MSG.sensorid_and_barcode)
-            case IDENTIFICATION_OPTION.AUTO :
-                self.label_explanation.configure(text = MODULE_IDENTIFICATION_MSG.auto)
-        
+    def __event_button_enter(self, type : str, option) :
+        if type == "IDENTIFICATION_OPTION" :
+            match (option) :
+                case IDENTIFICATION_OPTION.SENSOR_ID :
+                    self.label_explanation.configure(text = MSG_MODULE_IDENTIFICATION.sensorid)
+                case IDENTIFICATION_OPTION.BARCODE :
+                    self.label_explanation.configure(text = MSG_MODULE_IDENTIFICATION.barcode)
+                case IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE :
+                    self.label_explanation.configure(text = MSG_MODULE_IDENTIFICATION.sensorid_and_barcode)
+                case IDENTIFICATION_OPTION.AUTO :
+                    self.label_explanation.configure(text = MSG_MODULE_IDENTIFICATION.auto)
+        elif type == "BUTTON" :
+            match (option) :
+                case BUTTON.RUN :
+                    self.label_explanation.configure(text = MSG_BUTTON.run)
+                case BUTTON.INTEGRATE_ALL :
+                    self.label_explanation.configure(text = MSG_BUTTON.integrate_all)
+
+
+
     def __event_button_leave(self, event) :
-        self.label_explanation.configure(text = EXPLANATION_MSG_DEFAULT)
+        self.label_explanation.configure(text = MSG_EXPLANATION_DEFAULT)
 
     def run_ui(self) :
 
@@ -295,21 +231,27 @@ class UiMgr :
         self.btn_clear.pack(side = "right", padx = 10)
         self.btn_run = ck.CTkButton(self.frame_btn, text = "Run", width = 10, command = self.__execute_integration)
         self.btn_run.pack(side = "right", padx = 10)
+        self.btn_integrate_all = ck.CTkButton(self.frame_btn, text = "리스트 내 파일을 하나로 통합")#, command = self.__execute_integration_and_make_comprehensive_file)
+        self.btn_integrate_all.pack(side = "right", padx = 20)
         self.btn_info = ck.CTkButton(self.frame_btn, text = "Info", width = 10, command = self.__show_info)
         self.btn_info.pack(side = "left", padx = 10)
         
         self.frame_explanation = ck.CTkFrame(self.__root, fg_color = "transparent")
         self.frame_explanation.pack(fill = "x", padx = 10, pady = 15)
-        self.label_explanation = ck.CTkLabel(self.frame_explanation, text = EXPLANATION_MSG_DEFAULT)
+        self.label_explanation = ck.CTkLabel(self.frame_explanation, text = MSG_EXPLANATION_DEFAULT)
         self.label_explanation.pack(fill = "x")
-        self.radio_button_identification_1.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.SENSOR_ID))
+        self.radio_button_identification_1.bind("<Enter>", lambda x : self.__event_button_enter("IDENTIFICATION_OPTION", IDENTIFICATION_OPTION.SENSOR_ID))
         self.radio_button_identification_1.bind("<Leave>", self.__event_button_leave)
-        self.radio_button_identification_2.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.BARCODE))
+        self.radio_button_identification_2.bind("<Enter>", lambda x : self.__event_button_enter("IDENTIFICATION_OPTION", IDENTIFICATION_OPTION.BARCODE))
         self.radio_button_identification_2.bind("<Leave>", self.__event_button_leave)
-        self.radio_button_identification_3.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE))
+        self.radio_button_identification_3.bind("<Enter>", lambda x : self.__event_button_enter("IDENTIFICATION_OPTION", IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE))
         self.radio_button_identification_3.bind("<Leave>", self.__event_button_leave)
-        self.radio_button_identification_4.bind("<Enter>", lambda x : self.__event_button_enter(IDENTIFICATION_OPTION.AUTO))
+        self.radio_button_identification_4.bind("<Enter>", lambda x : self.__event_button_enter("IDENTIFICATION_OPTION", IDENTIFICATION_OPTION.AUTO))
         self.radio_button_identification_4.bind("<Leave>", self.__event_button_leave)
+        self.btn_run.bind("<Enter>", lambda x : self.__event_button_enter("BUTTON", BUTTON.RUN))
+        self.btn_run.bind("<Leave>", self.__event_button_leave)
+        self.btn_integrate_all.bind("<Enter>", lambda x : self.__event_button_enter("BUTTON", BUTTON.INTEGRATE_ALL))
+        self.btn_integrate_all.bind("<Leave>", self.__event_button_leave)
 
         self.__root.mainloop()
 
