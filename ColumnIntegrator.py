@@ -205,7 +205,10 @@ class ComprehensiveDataFileMaker :
 
     def execute(self) :
         for idx_df in range(1, len(self.__list_df)) : 
-            self.__result = pd.merge(self.__result, self.__list_df[idx_df], how = "inner", left_on = "sensorID", right_on = "sensorID")
-            
-    def to_csv_file(self) :
-        self.__result.to_csv("MergedLog.csv", index = None)
+            self.__result = pd.merge(self.__result, self.__list_df[idx_df], how = "inner", left_on = "sensorID", right_on = "sensorID", suffixes=["ColIntSufL", "ColIntSufR"])
+        
+        columns_without_suffixes = [header.split("ColIntSuf")[0] for header in self.__result.columns]
+        self.__result.reindex(columns = columns_without_suffixes)
+
+    def to_csv_file(self, file_name : str) :
+        self.__result.to_csv(file_name.replace(".csv", "_MergedLog.csv").replace(".CSV", "_MergedLog.csv"), index = None)

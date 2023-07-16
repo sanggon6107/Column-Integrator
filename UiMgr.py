@@ -126,7 +126,7 @@ class UiMgr :
     def __execute_integration_and_make_comprehensive_file(self) :
         comprehensive_data_file_maker = ComprehensiveDataFileMaker([column_integrator.get_result() for column_integrator in self.__list_column_integrator])
         comprehensive_data_file_maker.execute()
-        comprehensive_data_file_maker.to_csv_file()
+        comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
 
     def __show_info(self) :
         msg.showinfo("Info", MSG_INFO)
