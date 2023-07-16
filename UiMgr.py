@@ -93,7 +93,7 @@ class UiMgr :
             self.__list_column_integrator.append(ColumnIntegrator(full_path_temp))
             self.__list_file.append(file[1])
             self.list_box.insert(tk.END, file[1])
-        if self.__var_check_autorun.get() == int(SETTING.YES) : self.__execute_integration()
+        if self.__var_check_autorun.get() == int(SETTING.YES) : self.__execute_integration(False)
 
     def __clear(self) :
         self.list_box.delete(0, tk.END)
