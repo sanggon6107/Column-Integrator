@@ -59,6 +59,8 @@ class ColumnIntegrator :
         self.__result = pd.DataFrame()
         self.codec = 'utf-8'
         self.flag_executed = False
+        self.__dict_headers : dict[str, str] = {}
+
         try :
             self.log = CsvFile(file_name, no_header=True, codec = self.codec)
         except :
@@ -94,6 +96,9 @@ class ColumnIntegrator :
 
     def get_result(self) -> pd.DataFrame :
         return self.__result
+    
+    def get_header(self, key : str) -> str :
+        return self.__dict_headers[key]
 
     def __make_temporary_module_id(self, sensorid_header : str, barcode_header : str) :
         self.__result["temporary_module_id"] = ""
@@ -150,33 +155,33 @@ class ColumnIntegrator :
         sorted_headers = self.__sort_headers()
         self.__result = self.__result.reindex(columns = sorted_headers)
         
-        time_header = self.__find_header(headers = sorted_headers, list_candidate = ["time", "Time", "GlobalTime"])
-        lotnum_header = self.__find_header(headers = sorted_headers, list_candidate = ["lotNum", "LotNum"])
-        barcode_header = self.__find_header(headers = sorted_headers, list_candidate = ["barcode", "Barcode"])
-        sensorid_header = self.__find_header(headers = sorted_headers, list_candidate = ["sensorID", "SensorID"])
+        self.__dict_headers["time"] = self.__find_header(headers = sorted_headers, list_candidate = ["time", "Time", "GlobalTime"])
+        self.__dict_headers["lotnum"] = self.__find_header(headers = sorted_headers, list_candidate = ["lotNum", "LotNum"])
+        self.__dict_headers["barcode"] = self.__find_header(headers = sorted_headers, list_candidate = ["barcode", "Barcode"])
+        self.__dict_headers["sensorid"] = self.__find_header(headers = sorted_headers, list_candidate = ["sensorID", "SensorID"])
 
         if flag_make_comprehensive_file == True :
             var_identification = int(IDENTIFICATION_OPTION.SENSOR_ID)
             var_duplicate = int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE)
 
         if (var_duplicate != int(DUPLICATE_OPTION.DO_NOT_DROP)) :
-            self.__result.sort_values(by = [time_header], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
+            self.__result.sort_values(by = [self.__dict_headers["time"]], inplace = True, ascending = True, kind = 'quicksort', ignore_index = True)
         subset_duplicate = []
         if var_duplicate == int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) or var_duplicate == int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
-            subset_duplicate.append(lotnum_header)
+            subset_duplicate.append(self.__dict_headers["lotnum"])
         match (var_identification) :
             case int(IDENTIFICATION_OPTION.SENSOR_ID) :
-                subset_duplicate.append(sensorid_header)
+                subset_duplicate.append(self.__dict_headers["sensorid"])
             case int(IDENTIFICATION_OPTION.BARCODE) :
-                subset_duplicate.append(barcode_header)
+                subset_duplicate.append(self.__dict_headers["barcode"])
             case int(IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE) :
-                subset_duplicate.append(sensorid_header)
-                subset_duplicate.append(barcode_header)
+                subset_duplicate.append(self.__dict_headers["sensorid"])
+                subset_duplicate.append(self.__dict_headers["barcode"])
             case int(IDENTIFICATION_OPTION.AUTO) :
                 if flag_dll_exist == True :
-                    self.__make_temporary_module_id_go(sensorid_header = sensorid_header, barcode_header = barcode_header, dll_mgr_temporary_module_id_go = dll_mgr_temporary_module_id_go)
+                    self.__make_temporary_module_id_go(sensorid_header = self.__dict_headers["sensorid"], barcode_header = self.__dict_headers["barcode"], dll_mgr_temporary_module_id_go = dll_mgr_temporary_module_id_go)
                 else :
-                    self.__make_temporary_module_id(sensorid_header = sensorid_header, barcode_header = barcode_header)
+                    self.__make_temporary_module_id(sensorid_header = self.__dict_headers["sensorid"], barcode_header = self.__dict_headers["barcode"])
                 subset_duplicate.append("temporary_module_id")
 
         match (var_duplicate) :
@@ -198,14 +203,18 @@ class ColumnIntegrator :
 
 
 class ComprehensiveDataFileMaker :
-    def __init__(self, list_df : list[pd.DataFrame]) :
+    def __init__(self, list_df : list[pd.DataFrame], list_sensorid : list[str]) :
         self.__list_df = copy.deepcopy(list_df)
-
+        self.__list_sensorid = [list_sensorid[idx_list] + f"ColIntSuf{idx_list}" for idx_list in range(0, len(list_sensorid))]
         self.__result : pd.DataFrame = self.__list_df[0]
+
+        for idx_df in range(0, len(list_df)) :
+            list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
+
 
     def execute(self) :
         for idx_df in range(1, len(self.__list_df)) : 
-            self.__result = pd.merge(self.__result, self.__list_df[idx_df], how = "inner", left_on = "sensorID", right_on = "sensorID", suffixes=["ColIntSufL", "ColIntSufR"])
+            self.__result = pd.merge(self.__result, self.__list_df[idx_df], how = "outer", left_on = self.__list_sensorid[0], right_on = self.__list_sensorid[idx_df], suffixes=["ColIntSufL", "ColIntSufR"])
         
         self.__result.columns = [header.split("ColIntSuf")[0] for header in self.__result.columns]
 

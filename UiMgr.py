@@ -124,7 +124,7 @@ class UiMgr :
         if self.__var_check_autoclear.get() == int(SETTING.YES) : self.__clear()
 
     def __execute_integration_and_make_comprehensive_file(self) :
-        comprehensive_data_file_maker = ComprehensiveDataFileMaker([column_integrator.get_result() for column_integrator in self.__list_column_integrator])
+        comprehensive_data_file_maker = ComprehensiveDataFileMaker([column_integrator.get_result() for column_integrator in self.__list_column_integrator], [column_integrator.get_header("sensorid") for column_integrator in self.__list_column_integrator])
         comprehensive_data_file_maker.execute()
         comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
 
