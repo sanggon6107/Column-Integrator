@@ -206,11 +206,11 @@ class ComprehensiveDataFileMaker :
     def __init__(self, list_df : list[pd.DataFrame], list_sensorid : list[str]) :
         self.__list_df = copy.deepcopy(list_df)
         self.__list_sensorid = [list_sensorid[idx_list] + f"ColIntSuf{idx_list}" for idx_list in range(0, len(list_sensorid))]
-        self.__result : pd.DataFrame = self.__list_df[0]
 
         for idx_df in range(0, len(list_df)) :
-            list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
-
+            self.__list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
+        
+        self.__result : pd.DataFrame = self.__list_df[0]
 
     def execute(self) :
         for idx_df in range(1, len(self.__list_df)) : 
