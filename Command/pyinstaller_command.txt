@@ -1,1 +1,1 @@
-pyinstaller -F -w -n=ColumnIntegrator ColumnIntegrator.py --additional-hooks-dir=C:\........\ColumnIntegrator --collect-all customtkinter
+pyinstaller -F -w -n=ColumnIntegrator UiMgr.py --additional-hooks-dir=C:\........\ColumnIntegrator --collect-all customtkinter
