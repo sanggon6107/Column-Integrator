@@ -214,8 +214,9 @@ class ComprehensiveDataFileMaker :
 
     def execute(self) :
         for idx_df in range(1, len(self.__list_df)) : 
+
             self.__result = pd.merge(self.__result, self.__list_df[idx_df], how = "outer", left_on = self.__list_sensorid[0], right_on = self.__list_sensorid[idx_df], suffixes=["ColIntSufL", "ColIntSufR"])
-        
+
         self.__result.columns = [header.split("ColIntSuf")[0] for header in self.__result.columns]
 
     def to_csv_file(self, file_name : str) :

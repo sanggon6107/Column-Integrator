@@ -37,6 +37,7 @@ class UiMgr :
         self.__var_duplicate = tk.IntVar()
         self.__var_check_autorun = tk.IntVar()
         self.__var_check_autoclear = tk.IntVar()
+        self.__var_make_comprehensive_file = tk.IntVar()
 
         self.__pre_x, self.__pre_y = self.__root.winfo_pointerxy()
         
@@ -148,7 +149,14 @@ class UiMgr :
                     self.label_explanation.configure(text = MSG_BUTTON.run)
                 case BUTTON.INTEGRATE_ALL :
                     self.label_explanation.configure(text = MSG_BUTTON.integrate_all)
-
+        elif type == "MAKE_COMPREHENSIVE_FILE_OPTION" :
+            match (option) :
+                case MAKE_COMPREHENSIVE_FILE_OPTION.DO_NOT_MAKE :
+                    self.label_explanation.configure(text = MSG_MAKE_COMPREHENSIVE_FILE.do_not_make)
+                case MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL :
+                    self.label_explanation.configure(text = MSG_MAKE_COMPREHENSIVE_FILE.horizontal)
+                case MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL :
+                    self.label_explanation.configure(text = MSG_MAKE_COMPREHENSIVE_FILE.vertical)
 
 
     def __event_button_leave(self, event) :
@@ -194,10 +202,10 @@ class UiMgr :
         self.radio_button_identification_4 = ck.CTkRadioButton(self.frame_identification_button, text = "알아서 구분", value = int(IDENTIFICATION_OPTION.AUTO), radiobutton_height = 17, radiobutton_width = 17, height = 25, variable = self.__var_identification)
 
         self.label_identification.grid(column = 0, row = 0, sticky = "w")
-        self.radio_button_identification_1.grid(column = 0, row = 1, sticky = "w")
-        self.radio_button_identification_2.grid(column = 0, row = 2, sticky = "w")
-        self.radio_button_identification_3.grid(column = 0, row = 3, sticky = "w")
-        self.radio_button_identification_4.grid(column = 0, row = 4, sticky = "w")
+        self.radio_button_identification_1.grid(column = 0, row = 1, sticky = "w", padx = 10)
+        self.radio_button_identification_2.grid(column = 0, row = 2, sticky = "w", padx = 10)
+        self.radio_button_identification_3.grid(column = 1, row = 1, sticky = "w", padx = 30)
+        self.radio_button_identification_4.grid(column = 1, row = 2, sticky = "w", padx = 30)
 
 
         self.frame_duplicate_button = ck.CTkFrame(self.__root)
@@ -212,11 +220,25 @@ class UiMgr :
         self.radio_button_duplicate_5 = ck.CTkRadioButton(self.frame_duplicate_button, text = "랏 상관 없이 시간상 마지막 검사만 남기고 중복 제거", value = int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE), radiobutton_height = 17, radiobutton_width = 17, height = 25, variable = self.__var_duplicate)
         
         self.label_duplicate.grid(column = 0, row = 0, sticky = "w")
-        self.radio_button_duplicate_1.grid(column = 0, row = 1, sticky = "w")
-        self.radio_button_duplicate_2.grid(column = 0, row = 2, sticky = "w")
-        self.radio_button_duplicate_3.grid(column = 0, row = 3, sticky = "w")
-        self.radio_button_duplicate_4.grid(column = 0, row = 4, sticky = "w")
-        self.radio_button_duplicate_5.grid(column = 0, row = 5, sticky = "w")
+        self.radio_button_duplicate_1.grid(column = 0, row = 1, sticky = "w", padx = 10)
+        self.radio_button_duplicate_2.grid(column = 0, row = 2, sticky = "w", padx = 10)
+        self.radio_button_duplicate_3.grid(column = 1, row = 1, sticky = "w", padx = 30)
+        self.radio_button_duplicate_4.grid(column = 1, row = 2, sticky = "w", padx = 30)
+        self.radio_button_duplicate_5.grid(column = 1, row = 3, sticky = "w", padx = 30)
+
+        self.frame_comprehensive_file = ck.CTkFrame(self.__root)
+        self.frame_comprehensive_file.pack(fill = "x", padx = 10, pady = 10)
+
+        self.label_make_comprehensive_file = ck.CTkLabel(self.frame_comprehensive_file, text = "파일 통합 옵션")
+        self.radio_button_make_comprehensive_file_1 = ck.CTkRadioButton(self.frame_comprehensive_file, text = "통합하지 않음", value = int(MAKE_COMPREHENSIVE_FILE_OPTION.DO_NOT_MAKE), radiobutton_height = 17, radiobutton_width = 17, height = 25, variable = self.__var_make_comprehensive_file)
+        self.radio_button_make_comprehensive_file_1.select()
+        self.radio_button_make_comprehensive_file_2 = ck.CTkRadioButton(self.frame_comprehensive_file, text = "가로로 통합", value = int(MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL), radiobutton_height = 17, radiobutton_width = 17, height = 25, variable = self.__var_make_comprehensive_file)
+        self.radio_button_make_comprehensive_file_3 = ck.CTkRadioButton(self.frame_comprehensive_file, text = "세로로 통합", value = int(MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL), radiobutton_height = 17, radiobutton_width = 17, height = 25, variable = self.__var_make_comprehensive_file)
+
+        self.label_make_comprehensive_file.grid(column = 0, row = 0, sticky = "w")
+        self.radio_button_make_comprehensive_file_1.grid(column = 0, row = 1, sticky = "w", padx = 10)
+        self.radio_button_make_comprehensive_file_2.grid(column = 0, row = 2, sticky = "w", padx = 10)
+        self.radio_button_make_comprehensive_file_3.grid(column = 0, row = 3, sticky = "w", padx = 10)
 
         self.frame_auto_run_clear = ck.CTkFrame(self.__root)
         self.frame_auto_run_clear.pack(fill = "x", padx = 10, pady = 10)
@@ -257,6 +279,10 @@ class UiMgr :
         self.btn_run.bind("<Leave>", self.__event_button_leave)
         self.btn_integrate_all.bind("<Enter>", lambda x : self.__event_button_enter("BUTTON", BUTTON.INTEGRATE_ALL))
         self.btn_integrate_all.bind("<Leave>", self.__event_button_leave)
+        self.radio_button_make_comprehensive_file_2.bind("<Enter>", lambda x : self.__event_button_enter("MAKE_COMPREHENSIVE_FILE_OPTION", MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL))
+        self.radio_button_make_comprehensive_file_2.bind("<Leave>", self.__event_button_leave)
+        self.radio_button_make_comprehensive_file_3.bind("<Enter>", lambda x : self.__event_button_enter("MAKE_COMPREHENSIVE_FILE_OPTION", MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL))
+        self.radio_button_make_comprehensive_file_3.bind("<Leave>", self.__event_button_leave)
 
         self.__root.mainloop()
 
