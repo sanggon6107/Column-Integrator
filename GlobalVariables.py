@@ -103,7 +103,7 @@ MSG_BUTTON = ButtonInfo(
 MSG_MAKE_COMPREHENSIVE_FILE = MakeComprehensiveFileInfo(
     do_not_make = "",
     horizontal = """다수의 파일을 가로로 통합합니다.
-    결과는 각 파일의 첫 경로에 생성됩니다.""",
+    결과는 리스트상 첫번째 파일의 경로에 생성됩니다""",
     vertical = """다수의 파일을 세로로 통합합니다.
-    결과는 각 파일의 첫 경로에 생성됩니다."""
+    결과는 리스트상 첫번째 파일의 경로에 생성됩니다"""
 )
