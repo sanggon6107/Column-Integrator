@@ -91,10 +91,10 @@ class UiMgr :
             full_path_temp = file[0]+file[1]
             if full_path_temp in self.__list_full_path : continue
             self.__list_full_path.append(full_path_temp)
-            self.__list_column_integrator.append(ColumnIntegrator(full_path_temp))
+            self.__list_column_integrator.append(ColumnIntegrator.init_file(full_path_temp))
             self.__list_file.append(file[1])
             self.list_box.insert(tk.END, file[1])
-        if self.__var_check_autorun.get() == int(SETTING.YES) : self.__execute_integration(False)
+        if self.__var_check_autorun.get() == int(SETTING.YES) : self.__execute_integration()
 
     def __clear(self) :
         self.list_box.delete(0, tk.END)
@@ -102,7 +102,16 @@ class UiMgr :
         self.__list_file.clear()
         self.__list_column_integrator.clear()
 
-    def __execute_integration(self, flag_make_comprehensive_file : bool) :
+    def __execute_integration(self) :
+        flag_make_comprehensive_file_horizontal = False
+        flag_make_comprehensive_file_vertical = False
+        
+        match (self.__var_make_comprehensive_file.get()) :
+            case MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL :
+                flag_make_comprehensive_file_horizontal = True
+            case MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL :
+                flag_make_comprehensive_file_vertical = True
+
         if len(self.__list_full_path) == 0 :
             msg.showerror("Info", "List is empty")
             return
@@ -110,8 +119,8 @@ class UiMgr :
         for idx_file in range(len(self.__list_full_path)) :
             if self.__list_column_integrator[idx_file].flag_executed == True : continue
             try :
-                self.__list_column_integrator[idx_file].execute(self.exist_dll, flag_make_comprehensive_file, self.get_var_duplicate(), self.get_var_identification(), self.dll_mgr_temporary_module_id_go)
-                if flag_make_comprehensive_file == False : self.__list_column_integrator[idx_file].to_csv_file
+                self.__list_column_integrator[idx_file].execute(self.exist_dll, flag_make_comprehensive_file_horizontal, self.get_var_duplicate(), self.get_var_identification(), self.dll_mgr_temporary_module_id_go)
+                self.__list_column_integrator[idx_file].to_csv_file
                 self.__list_column_integrator[idx_file].flag_executed = True
                 self.list_box.itemconfig(idx_file, {"bg" : "light blue"})
             except Exception as e :
@@ -119,14 +128,20 @@ class UiMgr :
                 self.list_box.itemconfig(idx_file, {"bg" : "tomato"})
                 flag_complete = False
 
-        if flag_make_comprehensive_file == True : self.__execute_integration_and_make_comprehensive_file()
+        if flag_make_comprehensive_file_horizontal == True : self.__execute_integration_and_make_comprehensive_file_horizontal()
+        elif flag_make_comprehensive_file_vertical == True : self.__execute_integration_and_make_comprehensive_file_vertical()
 
         if flag_complete == True : msg.showinfo("Info", "Integration complete")
         if self.__var_check_autoclear.get() == int(SETTING.YES) : self.__clear()
 
-    def __execute_integration_and_make_comprehensive_file(self) :
-        comprehensive_data_file_maker = ComprehensiveDataFileMaker([column_integrator.get_result() for column_integrator in self.__list_column_integrator], [column_integrator.get_header("sensorid") for column_integrator in self.__list_column_integrator])
+    def __execute_integration_and_make_comprehensive_file_horizontal(self) :
+        comprehensive_data_file_maker = ComprehensiveDataFileMakerHorizontal([column_integrator.get_header("sensorid") for column_integrator in self.__list_column_integrator], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
         comprehensive_data_file_maker.execute()
+        comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
+
+    def __execute_integration_and_make_comprehensive_file_vertical(self) :
+        comprehensive_data_file_maker = ComprehensiveDataFileMakerVertical([column_integrator.get_result() for column_integrator in self.__list_column_integrator])
+        comprehensive_data_file_maker.execute(flag_dll_exist = self.exist_dll, flag_make_comprehensive_file_horizontal = False, var_duplicate = self.get_var_duplicate(), var_identification = self.get_var_identification(), dll_mgr_temporary_module_id_go = self.dll_mgr_temporary_module_id_go)
         comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
 
     def __show_info(self) :
@@ -256,10 +271,10 @@ class UiMgr :
         self.btn_exit.pack(side = "right", padx = 10)
         self.btn_clear = ck.CTkButton(self.frame_btn, text = "Clear", width = 10, command = self.__clear)
         self.btn_clear.pack(side = "right", padx = 10)
-        self.btn_run = ck.CTkButton(self.frame_btn, text = "Run", width = 10, command = lambda : self.__execute_integration(False))
+        self.btn_run = ck.CTkButton(self.frame_btn, text = "Run", width = 10, command = lambda : self.__execute_integration())
         self.btn_run.pack(side = "right", padx = 10)
-        self.btn_integrate_all = ck.CTkButton(self.frame_btn, text = "리스트 내 파일을 하나로 통합", command = lambda : self.__execute_integration(True))
-        self.btn_integrate_all.pack(side = "right", padx = 20)
+        #self.btn_integrate_all = ck.CTkButton(self.frame_btn, text = "리스트 내 파일을 하나로 통합", command = lambda : self.__execute_integration())
+        #self.btn_integrate_all.pack(side = "right", padx = 20)
         self.btn_info = ck.CTkButton(self.frame_btn, text = "Info", width = 10, command = self.__show_info)
         self.btn_info.pack(side = "left", padx = 10)
         
@@ -277,8 +292,8 @@ class UiMgr :
         self.radio_button_identification_4.bind("<Leave>", self.__event_button_leave)
         self.btn_run.bind("<Enter>", lambda x : self.__event_button_enter("BUTTON", BUTTON.RUN))
         self.btn_run.bind("<Leave>", self.__event_button_leave)
-        self.btn_integrate_all.bind("<Enter>", lambda x : self.__event_button_enter("BUTTON", BUTTON.INTEGRATE_ALL))
-        self.btn_integrate_all.bind("<Leave>", self.__event_button_leave)
+        #self.btn_integrate_all.bind("<Enter>", lambda x : self.__event_button_enter("BUTTON", BUTTON.INTEGRATE_ALL))
+        #self.btn_integrate_all.bind("<Leave>", self.__event_button_leave)
         self.radio_button_make_comprehensive_file_2.bind("<Enter>", lambda x : self.__event_button_enter("MAKE_COMPREHENSIVE_FILE_OPTION", MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL))
         self.radio_button_make_comprehensive_file_2.bind("<Leave>", self.__event_button_leave)
         self.radio_button_make_comprehensive_file_3.bind("<Enter>", lambda x : self.__event_button_enter("MAKE_COMPREHENSIVE_FILE_OPTION", MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL))
