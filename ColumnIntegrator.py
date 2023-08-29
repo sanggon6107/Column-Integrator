@@ -263,10 +263,10 @@ class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
 
 
 class ComprehensiveDataFileMakerVertical(IComprehensiveDataFileMaker) :
-    def __init__(self, *args, **kwargs) :
+    def __init__(self, file_name : str, *args, **kwargs) :
         super().__init__(*args, **kwargs)
 
-        self.__column_integrator : ColumnIntegrator = ColumnIntegrator.init_df(super()._list_df)
+        self.__column_integrator : ColumnIntegrator = ColumnIntegrator.init_df(file_name, super()._list_df)
 
     def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file_horizontal : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
         self.__column_integrator.execute(flag_dll_exist, flag_make_comprehensive_file_horizontal, var_duplicate, var_identification, dll_mgr_temporary_module_id_go)
