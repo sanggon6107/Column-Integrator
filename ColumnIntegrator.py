@@ -239,7 +239,7 @@ class IComprehensiveDataFileMaker :
     def __init__(self, list_df : list[pd.DataFrame]) :
         self._list_df = copy.deepcopy(list_df)
         
-        self._result : pd.DataFrame = self._list_df[0]
+        self._result : pd.DataFrame = pd.DataFrame()
 
     def to_csv_file(self, file_name : str) :
         self._result.to_csv(file_name.replace(".csv", "_MergedLog.csv").replace(".CSV", "_MergedLog.csv"), index = None, encoding='utf-8-sig')
@@ -254,6 +254,8 @@ class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
             self._list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
 
     def execute(self) :
+        self._result = self._list_df[0]
+
         for idx_df in range(1, len(self._list_df)) : 
 
             self._result = pd.merge(self._result, self._list_df[idx_df], how = "outer", left_on = self.__list_sensorid[0], right_on = self.__list_sensorid[idx_df], suffixes=["ColIntSufL", "ColIntSufR"])
@@ -269,3 +271,4 @@ class ComprehensiveDataFileMakerVertical(IComprehensiveDataFileMaker) :
 
     def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file_horizontal : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
         self.__column_integrator.execute(flag_dll_exist, flag_make_comprehensive_file_horizontal, var_duplicate, var_identification, dll_mgr_temporary_module_id_go)
+        self._result = self.__column_integrator.get_result()
