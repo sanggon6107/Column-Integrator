@@ -82,7 +82,6 @@ class ColumnIntegrator :
     @classmethod
     def init_file(cls, file_name : str) -> 'ColumnIntegrator' :
 
-        # 코덱 처리할것.
         codec = 'utf-8'
         try :
             log = CsvFile(file_name, no_header=True, codec = codec)
@@ -251,22 +250,22 @@ class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
         
         self.__list_sensorid = [list_sensorid[idx_list] + f"ColIntSuf{idx_list}" for idx_list in range(0, len(list_sensorid))]
 
-        for idx_df in range(0, len(super()._list_df)) :
-            super()._list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
+        for idx_df in range(0, len(self._list_df)) :
+            self._list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
 
     def execute(self) :
-        for idx_df in range(1, len(super()._list_df)) : 
+        for idx_df in range(1, len(self._list_df)) : 
 
-            super()._result = pd.merge(super()._result, super()._list_df[idx_df], how = "outer", left_on = self.__list_sensorid[0], right_on = self.__list_sensorid[idx_df], suffixes=["ColIntSufL", "ColIntSufR"])
+            self._result = pd.merge(self._result, self._list_df[idx_df], how = "outer", left_on = self.__list_sensorid[0], right_on = self.__list_sensorid[idx_df], suffixes=["ColIntSufL", "ColIntSufR"])
 
-        super()._result.columns = [header.split("ColIntSuf")[0] for header in self._result.columns]
+        self._result.columns = [header.split("ColIntSuf")[0] for header in self._result.columns]
 
 
 class ComprehensiveDataFileMakerVertical(IComprehensiveDataFileMaker) :
     def __init__(self, file_name : str, *args, **kwargs) :
         super().__init__(*args, **kwargs)
 
-        self.__column_integrator : ColumnIntegrator = ColumnIntegrator.init_df(file_name, super()._list_df)
+        self.__column_integrator : ColumnIntegrator = ColumnIntegrator.init_df(file_name, self._list_df)
 
     def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file_horizontal : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
         self.__column_integrator.execute(flag_dll_exist, flag_make_comprehensive_file_horizontal, var_duplicate, var_identification, dll_mgr_temporary_module_id_go)

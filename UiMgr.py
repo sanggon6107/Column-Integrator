@@ -120,7 +120,7 @@ class UiMgr :
             if self.__list_column_integrator[idx_file].flag_executed == True : continue
             try :
                 self.__list_column_integrator[idx_file].execute(self.exist_dll, flag_make_comprehensive_file_horizontal, self.get_var_duplicate(), self.get_var_identification(), self.dll_mgr_temporary_module_id_go)
-                self.__list_column_integrator[idx_file].to_csv_file
+                self.__list_column_integrator[idx_file].to_csv_file()
                 self.__list_column_integrator[idx_file].flag_executed = True
                 self.list_box.itemconfig(idx_file, {"bg" : "light blue"})
             except Exception as e :
