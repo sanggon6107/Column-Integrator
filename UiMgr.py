@@ -135,12 +135,12 @@ class UiMgr :
         if self.__var_check_autoclear.get() == int(SETTING.YES) : self.__clear()
 
     def __execute_integration_and_make_comprehensive_file_horizontal(self) :
-        comprehensive_data_file_maker = ComprehensiveDataFileMakerHorizontal([column_integrator.get_header("sensorid") for column_integrator in self.__list_column_integrator], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
+        comprehensive_data_file_maker = ComprehensiveDataFileMakerHorizontal(MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL, [column_integrator.get_header("sensorid") for column_integrator in self.__list_column_integrator], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
         comprehensive_data_file_maker.execute()
         comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
 
     def __execute_integration_and_make_comprehensive_file_vertical(self) :
-        comprehensive_data_file_maker = ComprehensiveDataFileMakerVertical(self.__list_full_path[0], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
+        comprehensive_data_file_maker = ComprehensiveDataFileMakerVertical(MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL, self.__list_full_path[0], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
         comprehensive_data_file_maker.execute(flag_dll_exist = self.exist_dll, flag_make_comprehensive_file_horizontal = False, var_duplicate = self.get_var_duplicate(), var_identification = self.get_var_identification(), dll_mgr_temporary_module_id_go = self.dll_mgr_temporary_module_id_go)
         comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
 

@@ -236,17 +236,25 @@ class ColumnIntegrator :
 
 
 class IComprehensiveDataFileMaker :
-    def __init__(self, list_df : list[pd.DataFrame]) :
+    def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, list_df : list[pd.DataFrame]) :
         self._list_df = copy.deepcopy(list_df)
         
         self._result : pd.DataFrame = pd.DataFrame()
 
+        self.__post_fix_merged_log : MAKE_COMPREHENSIVE_FILE_OPTION
+        match (merge_type) :
+            case MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL :
+                self.__post_fix_merged_log = "Horizontal"
+            case MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL :
+                self.__post_fix_merged_log = "Vertical"
+
+
     def to_csv_file(self, file_name : str) :
-        self._result.to_csv(file_name.replace(".csv", "_MergedLog.csv").replace(".CSV", "_MergedLog.csv"), index = None, encoding='utf-8-sig')
+        self._result.to_csv(file_name.replace(".csv", f"_MergedLog{self.__post_fix_merged_log}.csv").replace(".CSV", f"_MergedLog{self.__post_fix_merged_log}.csv"), index = None, encoding='utf-8-sig')
 
 class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
-    def __init__(self, list_sensorid : list[str], *args, **kwargs) :
-        super().__init__(*args, **kwargs)
+    def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, list_sensorid : list[str], list_df : list[pd.DataFrame]) :
+        super().__init__(merge_type, list_df)
         
         self.__list_sensorid = [list_sensorid[idx_list] + f"ColIntSuf{idx_list}" for idx_list in range(0, len(list_sensorid))]
 
@@ -257,15 +265,14 @@ class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
         self._result = self._list_df[0]
 
         for idx_df in range(1, len(self._list_df)) : 
-
             self._result = pd.merge(self._result, self._list_df[idx_df], how = "outer", left_on = self.__list_sensorid[0], right_on = self.__list_sensorid[idx_df], suffixes=["ColIntSufL", "ColIntSufR"])
 
         self._result.columns = [header.split("ColIntSuf")[0] for header in self._result.columns]
 
 
 class ComprehensiveDataFileMakerVertical(IComprehensiveDataFileMaker) :
-    def __init__(self, file_name : str, *args, **kwargs) :
-        super().__init__(*args, **kwargs)
+    def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, file_name : str, list_df : list[pd.DataFrame]) :
+        super().__init__(merge_type, list_df)
 
         self.__column_integrator : ColumnIntegrator = ColumnIntegrator.init_df(file_name, self._list_df)
 
