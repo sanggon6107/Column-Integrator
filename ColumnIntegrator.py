@@ -58,7 +58,7 @@ class ColumnIntegrator :
         self.__file_name = file_name
         self.__result = pd.DataFrame()
         self.codec = codec
-        self.flag_executed = False
+        self.__flag_executed = False
         self.__dict_headers : dict[str, str] = {}
 
         self.remove_unexpected_columns()
@@ -132,6 +132,12 @@ class ColumnIntegrator :
     
     def get_header(self, key : str) -> str :
         return self.__dict_headers[key]
+
+    def get_flag_excuted(self) -> bool :
+        return self.__flag_executed
+    
+    def set_flag_excuted(self, arg : bool) :
+        self.__flag_executed = arg
 
     def __make_temporary_module_id(self, sensorid_header : str, barcode_header : str) :
         self.__result["temporary_module_id"] = ""

@@ -117,11 +117,11 @@ class UiMgr :
             return
         flag_complete = True
         for idx_file in range(len(self.__list_full_path)) :
-            if self.__list_column_integrator[idx_file].flag_executed == True : continue
+            if self.__list_column_integrator[idx_file].get_flag_excuted() == True : continue
             try :
                 self.__list_column_integrator[idx_file].execute(self.exist_dll, flag_make_comprehensive_file_horizontal, self.get_var_duplicate(), self.get_var_identification(), self.dll_mgr_temporary_module_id_go)
                 self.__list_column_integrator[idx_file].to_csv_file()
-                self.__list_column_integrator[idx_file].flag_executed = True
+                self.__list_column_integrator[idx_file].set_flag_excuted(True)
                 self.list_box.itemconfig(idx_file, {"bg" : "light blue"})
             except Exception as e :
                 msg.showerror(f"{self.__list_file[idx_file]}", "Error occurred : " + str(e))
@@ -134,12 +134,19 @@ class UiMgr :
         if flag_complete == True : msg.showinfo("Info", "Integration complete")
         if self.__var_check_autoclear.get() == int(SETTING.YES) : self.__clear()
 
+    def __all_integration_done(self) -> bool :
+        return all([column_integrator.get_flag_excuted() for column_integrator in self.__list_column_integrator])
+
     def __execute_integration_and_make_comprehensive_file_horizontal(self) :
+        if self.__all_integration_done == False : return
+        
         comprehensive_data_file_maker = ComprehensiveDataFileMakerHorizontal(MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL, [column_integrator.get_header("sensorid") for column_integrator in self.__list_column_integrator], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
         comprehensive_data_file_maker.execute()
         comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
 
     def __execute_integration_and_make_comprehensive_file_vertical(self) :
+        if self.__all_integration_done == False : return
+
         comprehensive_data_file_maker = ComprehensiveDataFileMakerVertical(MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL, self.__list_full_path[0], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
         comprehensive_data_file_maker.execute(flag_dll_exist = self.exist_dll, flag_make_comprehensive_file_horizontal = False, var_duplicate = self.get_var_duplicate(), var_identification = self.get_var_identification(), dll_mgr_temporary_module_id_go = self.dll_mgr_temporary_module_id_go)
         comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
