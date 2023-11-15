@@ -53,23 +53,56 @@ class CsvFile :
 
 
 class ColumnIntegrator :
-    def __init__(self, file_name : str) :
-        self.__df_list : list[pd.DataFrame] = []
+    def __init__(self, file_name : str, df_list : list[pd.DataFrame], codec : str = 'utf-8') :
+        self.__df_list : list[pd.DataFrame] = df_list
         self.__file_name = file_name
         self.__result = pd.DataFrame()
-        self.codec = 'utf-8'
-        self.flag_executed = False
+        self.codec = codec
+        self.__flag_executed = False
         self.__dict_headers : dict[str, str] = {}
 
+        self.remove_unexpected_columns()
+
+        # try :
+        #     self.log = CsvFile(file_name, no_header=True, codec = self.codec)
+        # except :
+        #     try :
+        #         self.codec = 'cp949'
+        #         self.log = CsvFile(file_name, no_header=True, codec = self.codec)
+        #     except :
+        #         self.codec = 'euc-kr'
+        #         self.log = CsvFile(file_name, no_header=True, codec = self.codec)
+
+    # This constructor must receive preprocessed dataframes.
+    @classmethod
+    def init_df(cls, file_name : str, list_df : list[pd.DataFrame]) -> 'ColumnIntegrator' :
+        
+        return cls(file_name, list_df)
+    
+    @classmethod
+    def init_file(cls, file_name : str) -> 'ColumnIntegrator' :
+
+        codec = 'utf-8'
         try :
-            self.log = CsvFile(file_name, no_header=True, codec = self.codec)
+            log = CsvFile(file_name, no_header=True, codec = codec)
         except :
             try :
-                self.codec = 'cp949'
-                self.log = CsvFile(file_name, no_header=True, codec = self.codec)
+                codec = 'cp949'
+                log = CsvFile(file_name, no_header=True, codec = codec)
             except :
-                self.codec = 'euc-kr'
-                self.log = CsvFile(file_name, no_header=True, codec = self.codec)
+                codec = 'euc-kr'
+                log = CsvFile(file_name, no_header=True, codec = codec)
+
+        split_start = 0
+        df_list : list[pd.DataFrame] = []
+        for row in range(1, len(log.data)) :
+            if log.data.iloc[row][0] != log.data.iloc[0][0] : continue
+            df_list.append(log.split_csv(row_begin=split_start, row_end=row))
+            split_start = row
+        df_list.append(log.split_csv(row_begin=split_start, row_end=len(log.data)))
+        df_list.sort(key=lambda x : len(x.columns), reverse=True)
+        
+        return cls(file_name, df_list, codec = codec)
 
     def __sort_headers(self) -> pd.DataFrame :
         headers_list = []
@@ -99,6 +132,12 @@ class ColumnIntegrator :
     
     def get_header(self, key : str) -> str :
         return self.__dict_headers[key]
+
+    def get_flag_excuted(self) -> bool :
+        return self.__flag_executed
+    
+    def set_flag_excuted(self, arg : bool) :
+        self.__flag_executed = arg
 
     def __make_temporary_module_id(self, sensorid_header : str, barcode_header : str) :
         self.__result["temporary_module_id"] = ""
@@ -140,16 +179,16 @@ class ColumnIntegrator :
     def to_csv_file(self) :
         self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index = None, encoding = self.codec)
 
-    def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
-        split_start = 0
-        for row in range(1, len(self.log.data)) :
-            if self.log.data.iloc[row][0] != self.log.data.iloc[0][0] : continue
-            self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=row))
-            split_start = row
-        self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=len(self.log.data)))
+    def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file_horizontal : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
+        # split_start = 0
+        # for row in range(1, len(self.log.data)) :
+        #     if self.log.data.iloc[row][0] != self.log.data.iloc[0][0] : continue
+        #     self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=row))
+        #     split_start = row
+        # self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=len(self.log.data)))
+        # self.__df_list.sort(key=lambda x : len(x.columns), reverse=True)
+        # self.remove_unexpected_columns()
 
-        self.__df_list.sort(key=lambda x : len(x.columns), reverse=True)
-        self.remove_unexpected_columns()
         self.__result = pd.concat(self.__df_list, ignore_index=True)
 
         sorted_headers = self.__sort_headers()
@@ -160,7 +199,7 @@ class ColumnIntegrator :
         self.__dict_headers["barcode"] = self.__find_header(headers = sorted_headers, list_candidate = ["barcode", "Barcode"])
         self.__dict_headers["sensorid"] = self.__find_header(headers = sorted_headers, list_candidate = ["sensorID", "SensorID"])
 
-        if flag_make_comprehensive_file == True :
+        if flag_make_comprehensive_file_horizontal == True :
             var_identification = int(IDENTIFICATION_OPTION.SENSOR_ID)
             var_duplicate = int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE)
 
@@ -199,24 +238,50 @@ class ColumnIntegrator :
         if var_identification == int(IDENTIFICATION_OPTION.AUTO) :
             self.__result.drop(["temporary_module_id"], axis = 1, inplace = True)
         
-        self.to_csv_file()
+        # self.to_csv_file()
 
 
-class ComprehensiveDataFileMaker :
-    def __init__(self, list_df : list[pd.DataFrame], list_sensorid : list[str]) :
-        self.__list_df = copy.deepcopy(list_df)
-        self.__list_sensorid = [list_sensorid[idx_list] + f"ColIntSuf{idx_list}" for idx_list in range(0, len(list_sensorid))]
-
-        for idx_df in range(0, len(list_df)) :
-            self.__list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
+class IComprehensiveDataFileMaker :
+    def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, list_df : list[pd.DataFrame]) :
+        self._list_df = copy.deepcopy(list_df)
         
-        self.__result : pd.DataFrame = self.__list_df[0]
+        self._result : pd.DataFrame = pd.DataFrame()
 
-    def execute(self) :
-        for idx_df in range(1, len(self.__list_df)) : 
-            self.__result = pd.merge(self.__result, self.__list_df[idx_df], how = "outer", left_on = self.__list_sensorid[0], right_on = self.__list_sensorid[idx_df], suffixes=["ColIntSufL", "ColIntSufR"])
-        
-        self.__result.columns = [header.split("ColIntSuf")[0] for header in self.__result.columns]
+        self.__post_fix_merged_log : MAKE_COMPREHENSIVE_FILE_OPTION
+        match (merge_type) :
+            case MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL :
+                self.__post_fix_merged_log = "Horizontal"
+            case MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL :
+                self.__post_fix_merged_log = "Vertical"
+
 
     def to_csv_file(self, file_name : str) :
-        self.__result.to_csv(file_name.replace(".csv", "_MergedLog.csv").replace(".CSV", "_MergedLog.csv"), index = None)
+        self._result.to_csv(file_name.replace(".csv", f"_MergedLog{self.__post_fix_merged_log}.csv").replace(".CSV", f"_MergedLog{self.__post_fix_merged_log}.csv"), index = None, encoding='utf-8-sig')
+
+class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
+    def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, list_sensorid : list[str], list_df : list[pd.DataFrame]) :
+        super().__init__(merge_type, list_df)
+        
+        self.__list_sensorid = [list_sensorid[idx_list] + f"ColIntSuf{idx_list}" for idx_list in range(0, len(list_sensorid))]
+
+        for idx_df in range(0, len(self._list_df)) :
+            self._list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
+
+    def execute(self) :
+        self._result = self._list_df[0]
+
+        for idx_df in range(1, len(self._list_df)) : 
+            self._result = pd.merge(self._result, self._list_df[idx_df], how = "outer", left_on = self.__list_sensorid[0], right_on = self.__list_sensorid[idx_df], suffixes=["ColIntSufL", "ColIntSufR"])
+
+        self._result.columns = [header.split("ColIntSuf")[0] for header in self._result.columns]
+
+
+class ComprehensiveDataFileMakerVertical(IComprehensiveDataFileMaker) :
+    def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, file_name : str, list_df : list[pd.DataFrame]) :
+        super().__init__(merge_type, list_df)
+
+        self.__column_integrator : ColumnIntegrator = ColumnIntegrator.init_df(file_name, self._list_df)
+
+    def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file_horizontal : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
+        self.__column_integrator.execute(flag_dll_exist, flag_make_comprehensive_file_horizontal, var_duplicate, var_identification, dll_mgr_temporary_module_id_go)
+        self._result = self.__column_integrator.get_result()

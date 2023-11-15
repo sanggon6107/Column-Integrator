@@ -28,6 +28,11 @@ class BUTTON(EnumFromZero) :
     RUN = auto()
     INTEGRATE_ALL = auto()
 
+class MAKE_COMPREHENSIVE_FILE_OPTION(EnumFromZero) :
+    DO_NOT_MAKE = auto()
+    HORIZONTAL = auto()
+    VERTICAL = auto()
+
 class SETTING(EnumFromZero) :
     NO = auto()
     YES = auto()
@@ -49,6 +54,12 @@ class ModuleIdentificationInfo :
 class ButtonInfo :
     run : str = None
     integrate_all : str = None
+
+@dataclass
+class MakeComprehensiveFileInfo :
+    do_not_make : str = None
+    horizontal : str = None
+    vertical : str = None
 
 MSG_INFO = """
   Information
@@ -87,4 +98,12 @@ MSG_BUTTON = ButtonInfo(
     integrate_all = """컬럼을 통합하고 리스트에 있는 파일을 하나로 합칩니다.
     센서 기준으로 랏 구분 없이 마지막 데이터만 남깁니다.
     결과는 리스트상 첫번째 파일의 경로에 생성됩니다."""
+)
+
+MSG_MAKE_COMPREHENSIVE_FILE = MakeComprehensiveFileInfo(
+    do_not_make = "",
+    horizontal = """다수의 파일을 가로로 통합합니다.
+    결과는 리스트상 첫번째 파일의 경로에 생성됩니다""",
+    vertical = """다수의 파일을 세로로 통합합니다.
+    결과는 리스트상 첫번째 파일의 경로에 생성됩니다"""
 )
