@@ -62,6 +62,8 @@ class ColumnIntegrator :
         self.__dict_headers : dict[str, str] = {}
 
         self.remove_unexpected_columns()
+        
+        # DEPRECATED : The below works are conducted via init_df and init_file
 
         # try :
         #     self.log = CsvFile(file_name, no_header=True, codec = self.codec)
@@ -76,12 +78,26 @@ class ColumnIntegrator :
     # This constructor must receive preprocessed dataframes.
     @classmethod
     def init_df(cls, file_name : str, list_df : list[pd.DataFrame]) -> 'ColumnIntegrator' :
+        '''
+        Constructor that initialize a ColumnIntegrator using filename and a list of DataFrame.
+        Every DataFrame passed to this constructor must be already column-integrated.
         
+        :param file_name: Represents Dataframe. This param needs to decide the path to export the result Dataframe as a csv file.
+        :param list_df: A list that consists of DataFrames. ColumnIntegrator will eventually integrate these Dataframe into a single Dataframe. 
+        :return: This function will finally intialize and return a ColumIntegrator instance that contains has tables to integrate.
+        '''
         return cls(file_name, list_df)
     
     @classmethod
     def init_file(cls, file_name : str) -> 'ColumnIntegrator' :
+        '''
+        Consturctor that initialize a ColumnIntegrator using a file name. This constructor is used to initialize the ColumnIntegrator using a csv file
+        that has many different vertically, and successively logged tables.
+        This function splits the tables into different DataFrames and initialize a ColumnIntegrator instance.
 
+        :param file_name: The name of the csv file to load.
+        :return: This function will finally intialize and return a ColumIntegrator instance that contains has tables to integrate.
+        '''
         codec = 'utf-8'
         try :
             log = CsvFile(file_name, no_header=True, codec = codec)
@@ -140,6 +156,15 @@ class ColumnIntegrator :
         self.__flag_executed = arg
 
     def __make_temporary_module_id(self, sensorid_header : str, barcode_header : str) :
+        '''
+        This function will make temporary module id to identify modules that may have sensor id and module barcode.
+        This function works completely the same as "MakeTemporaryModuleIdGo" which is implemented in golang.
+        The software prefers golang version, but will call this function when there's no "MakeTemporaryModuleIdGo.dll" in the same path.
+
+        :param sensorid_header: Column name that indicates sensor id. this is necessary since the sensor id header varies depending on the factory.
+        :param barcode_header: Column name that indicates module barcode. this is necessary since the barcode header varies depending on the factory
+
+        '''
         self.__result["temporary_module_id"] = ""
         module_list : list[ModuleInfo] = []
 
@@ -180,6 +205,9 @@ class ColumnIntegrator :
         self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index = None, encoding = self.codec)
 
     def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file_horizontal : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
+        
+        # DEPRECATED : The blow feature will be conducted in consturctor (init_file).
+
         # split_start = 0
         # for row in range(1, len(self.log.data)) :
         #     if self.log.data.iloc[row][0] != self.log.data.iloc[0][0] : continue
@@ -243,6 +271,9 @@ class ColumnIntegrator :
 
 class IComprehensiveDataFileMaker :
     def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, list_df : list[pd.DataFrame]) :
+        '''
+        This class and its children classes integrates multiple files into a single csv file.
+        '''
         self._list_df = copy.deepcopy(list_df)
         
         self._result : pd.DataFrame = pd.DataFrame()
@@ -260,6 +291,12 @@ class IComprehensiveDataFileMaker :
 
 class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
     def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, list_sensorid : list[str], list_df : list[pd.DataFrame]) :
+        '''
+        This class integrates the integrated result exported by ColumnIntegrator in horizontal way.
+        This class executes the integration using pd.merge(outer) to integrate the tables.
+        Headers will have temporary postfix to avoid unexpected duplicates drop.
+
+        '''
         super().__init__(merge_type, list_df)
         
         self.__list_sensorid = [list_sensorid[idx_list] + f"ColIntSuf{idx_list}" for idx_list in range(0, len(list_sensorid))]
@@ -278,6 +315,14 @@ class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
 
 class ComprehensiveDataFileMakerVertical(IComprehensiveDataFileMaker) :
     def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, file_name : str, list_df : list[pd.DataFrame]) :
+        '''
+        This class integrates the integrated result exported by ColumnIntegrator in vertical way.
+        This class simply initializes and executes the integration using ColumnIntegrator instance.
+
+        :param merge_type: this parameter needs to decide the posfix of the result file.
+        :param file_name: this parameter needs to decide the name of the result file.
+        :param list_df: ComprehensiveDataFileMakerVertical will eventually integrate these DataFrames into a single table.
+        '''
         super().__init__(merge_type, list_df)
 
         self.__column_integrator : ColumnIntegrator = ColumnIntegrator.init_df(file_name, self._list_df)

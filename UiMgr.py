@@ -10,6 +10,10 @@ from ctypes import windll
 from ColumnIntegrator import *
 
 class TkWrapper(ck.CTk, dnd.TkinterDnD.DnDWrapper) :
+    '''
+    Inheritates both CTK and TkinterDnD to feature modern design and drag&drop.
+
+    '''
     def __init__ (self, *args, **kwargs) :
         super().__init__(*args, **kwargs)
         self.TkdndVersion = dnd.TkinterDnD._require(self)
@@ -103,6 +107,10 @@ class UiMgr :
         self.__list_column_integrator.clear()
 
     def __execute_integration(self) :
+        '''
+        This function executes the integration calling "Execute" in ColumnIntegrator class.
+
+        '''
         flag_make_comprehensive_file_horizontal = False
         flag_make_comprehensive_file_vertical = False
         
@@ -155,6 +163,12 @@ class UiMgr :
         msg.showinfo("Info", MSG_INFO)
 
     def __event_button_enter(self, type : str, option) :
+        '''
+        Handles the hovering events. this function call shows the proper message when the mouse pointer is on a particular button.
+        
+        : param type: button type.
+        : param option: specific option to select message. Message will be decided depending on this option.
+        '''
         if type == "IDENTIFICATION_OPTION" :
             match (option) :
                 case IDENTIFICATION_OPTION.SENSOR_ID :
@@ -185,7 +199,11 @@ class UiMgr :
         self.label_explanation.configure(text = MSG_EXPLANATION_DEFAULT)
 
     def run_ui(self) :
+        '''
+        Defines specific design and position of the UI.
+        Also defines each function call depending on the buttons.
 
+        '''
         self.__root.after(0, self.__set_window)
 
         self.frame_title = ck.CTkFrame(self.__root, height = 15, fg_color = "transparent")
