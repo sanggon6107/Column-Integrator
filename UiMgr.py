@@ -22,7 +22,11 @@ ck.set_default_color_theme("green")
 
 class UiMgr(metaclass=Singleton) :
     def __init__(self) :
+        '''
+        UiMgr has UI components and defines their behavior. 
+        Implemented as Singleton.
         
+        '''
         self.__root = TkWrapper()
         self.__root.title("Column Integrator")
         self.__root.geometry("700x900+100+100")
@@ -146,6 +150,9 @@ class UiMgr(metaclass=Singleton) :
         return all([column_integrator.get_flag_excuted() for column_integrator in self.__list_column_integrator])
 
     def __execute_integration_and_make_comprehensive_file_horizontal(self) :
+        '''
+        Integrate all the files on the listbox into one csv file in horizontal way.
+        '''
         if self.__all_integration_done == False : return
         
         comprehensive_data_file_maker = ComprehensiveDataFileMakerHorizontal(MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL, [column_integrator.get_header("sensorid") for column_integrator in self.__list_column_integrator], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
@@ -153,6 +160,9 @@ class UiMgr(metaclass=Singleton) :
         comprehensive_data_file_maker.to_csv_file(self.__list_full_path[0])
 
     def __execute_integration_and_make_comprehensive_file_vertical(self) :
+        '''
+        Integrate all the files on the listbox into one csv file in vertical way.
+        '''
         if self.__all_integration_done == False : return
 
         comprehensive_data_file_maker = ComprehensiveDataFileMakerVertical(MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL, self.__list_full_path[0], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
