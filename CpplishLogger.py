@@ -32,14 +32,19 @@ class LogMgr(metaclass=Singleton) :
             case logging.ERROR :
                 self.__log.error(arg)
             case logging.FATAL :
-                self.__log.error(arg)
+                self.__log.fatal(arg)
             case _ :
                 pass
 LOG_MGR = LogMgr()
 
-# Cpp-lish LOGGER
 class LOG :
     def __init__(self, level) :
+        '''
+        Cpp-lish logger.
+        Level : logging.DEBUG, logging.INFO, logging.WARN, logging.ERROR, logging.FATAL
+        
+        : param  level: logging level
+        '''
         self.__level = level
 
     def __lshift__(self, arg : str) :
