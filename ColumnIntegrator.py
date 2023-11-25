@@ -1,5 +1,6 @@
 from DllMgrTemporaryModuleId import *
 from GlobalVariables import *
+from CpplishLogger import *
 
 import pandas as pd
 import csv

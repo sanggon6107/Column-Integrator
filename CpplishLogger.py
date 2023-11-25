@@ -1,7 +1,5 @@
 import logging
 import ctypes
-from enum import IntEnum, auto
-
 
 OutputDebugString = ctypes.windll.kernel32.OutputDebugStringW
 
@@ -38,10 +36,10 @@ class LogMgr :
                 pass
 LOG_MGR = LogMgr()
 
-
+# Cpp-lish LOGGER
 class LOG :
     def __init__(self, level) :
         self.__level = level
-    
+
     def __lshift__(self, arg : str) :
         LOG_MGR.log(self.__level, arg)
