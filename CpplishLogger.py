@@ -31,8 +31,8 @@ class LogMgr(metaclass=Singleton) :
                 self.__log.warn("| " + sys._getframe(2).f_code.co_name + " | " + arg)
             case logging.ERROR :
                 self.__log.error("| " + sys._getframe(2).f_code.co_name + " | " + arg)
-            case logging.FATAL :
-                self.__log.fatal("| " + sys._getframe(2).f_code.co_name + " | " + arg)
+            case logging.CRITICAL :
+                self.__log.critical("| " + sys._getframe(2).f_code.co_name + " | " + arg)
             case _ :
                 pass
 LOG_MGR = LogMgr()
