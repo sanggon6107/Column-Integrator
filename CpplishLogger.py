@@ -1,5 +1,6 @@
 import logging
 import ctypes
+from Singleton import *
 
 OutputDebugString = ctypes.windll.kernel32.OutputDebugStringW
 
@@ -8,7 +9,7 @@ class DbgViewHandler(logging.Handler) :
         OutputDebugString(self.format(record))
 
 
-class LogMgr :
+class LogMgr(metaclass=Singleton) :
     def __init__(self) :
         self.__log = logging.getLogger("output.debug.string.logger")
         self.__ods = DbgViewHandler()

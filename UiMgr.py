@@ -20,7 +20,7 @@ class TkWrapper(ck.CTk, dnd.TkinterDnD.DnDWrapper) :
 ck.set_appearance_mode("dark")
 ck.set_default_color_theme("green")
 
-class UiMgr :
+class UiMgr(metaclass=Singleton) :
     def __init__(self) :
         
         self.__root = TkWrapper()
