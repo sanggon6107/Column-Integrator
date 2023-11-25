@@ -1,6 +1,7 @@
 import logging
 import ctypes
 from Singleton import *
+import sys
 
 OutputDebugString = ctypes.windll.kernel32.OutputDebugStringW
 
@@ -14,9 +15,8 @@ class LogMgr(metaclass=Singleton) :
         self.__log = logging.getLogger("output.debug.string.logger")
         self.__ods = DbgViewHandler()
 
-        self.__fmt = logging.Formatter(fmt='%(asctime)s.%(msecs)03d [%(thread)5s] %(levelname)-8s %(funcName)-20s %(lineno)d %(message)s', datefmt='%Y:%m:%d %H:%M:%S')
+        self.__fmt = logging.Formatter(fmt='%(asctime)s.%(msecs)03d [%(thread)5s] %(levelname)-8s %(message)s', datefmt='%Y:%m:%d %H:%M:%S')
         self.__log.setLevel(logging.DEBUG)
-
         self.__ods.setLevel(logging.DEBUG)
         self.__ods.setFormatter(self.__fmt)
         self.__log.addHandler(self.__ods)
@@ -24,15 +24,15 @@ class LogMgr(metaclass=Singleton) :
     def log(self, level, arg : str) :
         match(level) : 
             case logging.DEBUG :
-                self.__log.debug(arg)
+                self.__log.debug("| " + sys._getframe(2).f_code.co_name + " | " + arg)
             case logging.INFO :
-                self.__log.info(arg)
+                self.__log.info("| " + sys._getframe(2).f_code.co_name + " | " + arg)
             case logging.WARN :
-                self.__log.warn(arg)
+                self.__log.warn("| " + sys._getframe(2).f_code.co_name + " | " + arg)
             case logging.ERROR :
-                self.__log.error(arg)
+                self.__log.error("| " + sys._getframe(2).f_code.co_name + " | " + arg)
             case logging.FATAL :
-                self.__log.fatal(arg)
+                self.__log.fatal("| " + sys._getframe(2).f_code.co_name + " | " + arg)
             case _ :
                 pass
 LOG_MGR = LogMgr()
