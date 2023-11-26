@@ -337,8 +337,9 @@ class IComprehensiveDataFileMaker :
 
 
     def to_csv_file(self, file_name : str) :
-        LOG(logging.DEBUG) << f"to_csv_file : {file_name}"
-        self._result.to_csv(file_name.replace(".csv", f"_MergedLog{self.__post_fix_merged_log}.csv").replace(".CSV", f"_MergedLog{self.__post_fix_merged_log}.csv"), index = None, encoding='utf-8-sig')
+        file_name_temp = file_name.replace(".csv", f"_MergedLog{self.__post_fix_merged_log}.csv").replace(".CSV", f"_MergedLog{self.__post_fix_merged_log}.csv")
+        LOG(logging.DEBUG) << f"to_csv_file : {file_name_temp}"
+        self._result.to_csv(file_name_temp, index = None, encoding='utf-8-sig')
 
 class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
     def __init__(self, merge_type : MAKE_COMPREHENSIVE_FILE_OPTION, list_sensorid : list[str], list_df : list[pd.DataFrame]) :
