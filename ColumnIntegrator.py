@@ -216,6 +216,8 @@ class ColumnIntegrator :
 
     def __make_temporary_module_id_go(self, sensorid_header : str, barcode_header : str, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
         LOG(logging.DEBUG) << "Function call : ColumnIntegrator.__make_temporary_module_id_go"
+        LOG(logging.DEBUG) << f"Sensor id header : {sensorid_header}, Barcode id header : {barcode_header}"
+        LOG(logging.DEBUG) << f"Sensor id size : {len(self.__result[sensorid_header])}, Barcode id size : {len(self.__result[barcode_header])}"
         self.__result["temporary_module_id"] = dll_mgr_temporary_module_id_go.make_temporary_module_id_go(self.__result[sensorid_header].to_list(), self.__result[barcode_header].to_list())
 
     def remove_unexpected_columns(self) :
