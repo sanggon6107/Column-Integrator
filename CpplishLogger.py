@@ -3,6 +3,7 @@ import ctypes
 from Singleton import *
 import sys
 
+# Only for Windows
 OutputDebugString = ctypes.windll.kernel32.OutputDebugStringW
 
 class DbgViewHandler(logging.Handler) :
@@ -47,5 +48,6 @@ class LOG :
         '''
         self.__level = level
 
-    def __lshift__(self, arg : str) :
+    def __lshift__(self, arg : str) -> 'LOG' :
         LOG_MGR.log(self.__level, arg)
+        return self

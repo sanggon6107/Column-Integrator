@@ -27,6 +27,8 @@ class UiMgr(metaclass=Singleton) :
         Implemented as Singleton.
         
         '''
+        LOG(logging.DEBUG) << "UiMgr initialized"
+
         self.__root = TkWrapper()
         self.__root.title("Column Integrator")
         self.__root.geometry("700x900+100+100")
@@ -53,8 +55,10 @@ class UiMgr(metaclass=Singleton) :
 
         self.exist_dll = True
         try :
+            LOG(logging.DEBUG) << "Load 'MakeTemporaryModuelIdGo.dll'."
             self.dll_mgr_temporary_module_id_go = DllMgrTemporaryModuleId("./MakeTemporaryModuleIdGo.dll")
         except :
+            LOG(logging.INFO) << "Failed to load the dll file. SW will make temporary id using the internal function."
             self.exist_dll = False
         
     def get_var_identification(self) -> int :
@@ -93,6 +97,8 @@ class UiMgr(metaclass=Singleton) :
         self.__pre_y = None
 
     def __add_listbox(self, event) :
+        LOG(logging.DEBUG) << "Function call : UiMgr.__add_listbox"
+        LOG(logging.DEBUG) << f"data acquired : {event.data}"
         event_data_preproc = event.data.replace("\\", "/")
         files_found = self.regex_file.findall(event_data_preproc)
         for file in files_found :
@@ -105,6 +111,7 @@ class UiMgr(metaclass=Singleton) :
         if self.__var_check_autorun.get() == int(SETTING.YES) : self.__execute_integration()
 
     def __clear(self) :
+        LOG(logging.DEBUG) << "Function call : UiMgr.__clear"
         self.list_box.delete(0, tk.END)
         self.__list_full_path.clear()
         self.__list_file.clear()
@@ -115,34 +122,52 @@ class UiMgr(metaclass=Singleton) :
         This function executes the integration calling "Execute" in ColumnIntegrator class.
 
         '''
+        LOG(logging.DEBUG) << "Function call : UiMgr.__execute_integration"
+        LOG(logging.DEBUG) << f"{len(self.__list_column_integrator)} file(s) on the listbox"
+        LOG(logging.DEBUG) << f"var_duplicate : {str(DUPLICATE_OPTION(self.get_var_duplicate()))}"
+        LOG(logging.DEBUG) << f"var_identification : {str(IDENTIFICATION_OPTION(self.get_var_identification()))}"
+
         flag_make_comprehensive_file_horizontal = False
         flag_make_comprehensive_file_vertical = False
         
         match (self.__var_make_comprehensive_file.get()) :
             case MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL :
+                LOG(logging.DEBUG) << "flag_make_comprehensive_file_horizontal on"
                 flag_make_comprehensive_file_horizontal = True
             case MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL :
+                LOG(logging.DEBUG) << "flag_make_comprehensive_file_vertical on"
                 flag_make_comprehensive_file_vertical = True
 
         if len(self.__list_full_path) == 0 :
+            LOG(logging.DEBUG) << "Listbox is empty."
             msg.showerror("Info", "List is empty")
             return
         flag_complete = True
+        execution_count = 0
         for idx_file in range(len(self.__list_full_path)) :
-            if self.__list_column_integrator[idx_file].get_flag_excuted() == True : continue
+            if self.__list_column_integrator[idx_file].get_flag_excuted() == True :
+                LOG(logging.DEBUG) <<  f"Already excuted : {self.__list_column_integrator[idx_file].get_file_name()}"
+                continue
             try :
+                LOG(logging.DEBUG) << f"Start to execute : {self.__list_column_integrator[idx_file].get_file_name()}"
                 self.__list_column_integrator[idx_file].execute(self.exist_dll, flag_make_comprehensive_file_horizontal, self.get_var_duplicate(), self.get_var_identification(), self.dll_mgr_temporary_module_id_go)
                 self.__list_column_integrator[idx_file].to_csv_file()
                 self.__list_column_integrator[idx_file].set_flag_excuted(True)
                 self.list_box.itemconfig(idx_file, {"bg" : "light blue"})
+                execution_count += 1
             except Exception as e :
+                LOG(logging.DEBUG) << f"Execution failed : {self.__list_column_integrator[idx_file].get_file_name()}"
+                LOG(logging.DEBUG) << str(e)
                 msg.showerror(f"{self.__list_file[idx_file]}", "Error occurred : " + str(e))
                 self.list_box.itemconfig(idx_file, {"bg" : "tomato"})
                 flag_complete = False
 
         if flag_make_comprehensive_file_horizontal == True : self.__execute_integration_and_make_comprehensive_file_horizontal()
         elif flag_make_comprehensive_file_vertical == True : self.__execute_integration_and_make_comprehensive_file_vertical()
-
+        
+        LOG(logging.DEBUG) << f"All integration excuted : {execution_count} file(s)."
+        LOG(logging.DEBUG) << f"flag_complete : {flag_complete}" 
+        
         if flag_complete == True : msg.showinfo("Info", "Integration complete")
         if self.__var_check_autoclear.get() == int(SETTING.YES) : self.__clear()
 
@@ -153,6 +178,7 @@ class UiMgr(metaclass=Singleton) :
         '''
         Integrate all the files on the listbox into one csv file in horizontal way.
         '''
+        LOG(logging.DEBUG) << "Function call : UiMgr.__execute_integration_and_make_comprehensive_file_horizontal"
         if self.__all_integration_done == False : return
         
         comprehensive_data_file_maker = ComprehensiveDataFileMakerHorizontal(MAKE_COMPREHENSIVE_FILE_OPTION.HORIZONTAL, [column_integrator.get_header("sensorid") for column_integrator in self.__list_column_integrator], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
@@ -163,6 +189,7 @@ class UiMgr(metaclass=Singleton) :
         '''
         Integrate all the files on the listbox into one csv file in vertical way.
         '''
+        LOG(logging.DEBUG) << "Function call : UiMgr.__execute_integration_and_make_comprehensive_file_vertical"
         if self.__all_integration_done == False : return
 
         comprehensive_data_file_maker = ComprehensiveDataFileMakerVertical(MAKE_COMPREHENSIVE_FILE_OPTION.VERTICAL, self.__list_full_path[0], [column_integrator.get_result() for column_integrator in self.__list_column_integrator])
@@ -214,6 +241,8 @@ class UiMgr(metaclass=Singleton) :
         Also defines each function call depending on the buttons.
 
         '''
+        LOG(logging.DEBUG) << "Function call : UiMgr.run_ui"
+
         self.__root.after(0, self.__set_window)
 
         self.frame_title = ck.CTkFrame(self.__root, height = 15, fg_color = "transparent")

@@ -17,6 +17,7 @@ class CsvFile :
             f.close()
             self.data = pd.DataFrame(csv_list)
         else : self.data = pd.read_csv(file_name)
+        LOG(logging.DEBUG) << f"CsvFile instantiated. codec : {codec}"
 
     def print_out(self) :
         print(self.data)
@@ -44,17 +45,20 @@ class CsvFile :
         self.data.to_csv(filename, index = None)
 
     def split_csv(self, row_begin, row_end) -> pd.DataFrame :
+        LOG(logging.DEBUG) << f"Function call : CsvFile.split_csv. row_begin : {row_begin}, row_end : {row_end}"
         ret_temp = self.data.iloc[row_begin:row_end,:]
         ret_temp.rename(columns=ret_temp.iloc[0], inplace=True)
         ret_temp.drop(ret_temp.index[0], inplace=True)
         ret_temp.reset_index(drop = True, inplace = True)
         ret_temp.dropna(how='all', axis='columns', inplace=True)
 
+        LOG(logging.DEBUG) << f"split_csv complete. ret_temp shape : {ret_temp.shape}"
         return ret_temp
 
 
 class ColumnIntegrator :
     def __init__(self, file_name : str, df_list : list[pd.DataFrame], codec : str = 'utf-8') :
+        LOG(logging.DEBUG) << "ColumnIntegrator instantiated"
         self.__df_list : list[pd.DataFrame] = df_list
         self.__file_name = file_name
         self.__result = pd.DataFrame()
@@ -87,6 +91,7 @@ class ColumnIntegrator :
         :param list_df: A list that consists of DataFrames. ColumnIntegrator will eventually integrate these Dataframe into a single Dataframe. 
         :return: This function will finally intialize and return a ColumIntegrator instance that contains has tables to integrate.
         '''
+        LOG(logging.DEBUG) << "Function call : ColumnIntegrator.init_df"
         return cls(file_name, list_df)
     
     @classmethod
@@ -99,6 +104,7 @@ class ColumnIntegrator :
         :param file_name: The name of the csv file to load.
         :return: This function will finally intialize and return a ColumIntegrator instance that contains has tables to integrate.
         '''
+        LOG(logging.DEBUG) << "Function call : ColumnIntegrator.init_file"
         codec = 'utf-8'
         try :
             log = CsvFile(file_name, no_header=True, codec = codec)
@@ -109,12 +115,16 @@ class ColumnIntegrator :
             except :
                 codec = 'euc-kr'
                 log = CsvFile(file_name, no_header=True, codec = codec)
+        LOG(logging.DEBUG) << f"Codec : {codec}"
 
+        LOG(logging.DEBUG) << "Split the csv file into tables with a single set of headers on top."
         split_start = 0
         df_list : list[pd.DataFrame] = []
         for row in range(1, len(log.data)) :
             if log.data.iloc[row][0] != log.data.iloc[0][0] : continue
+            LOG(logging.DEBUG) << f"Confronted with the column row : {log.data.iloc[row][0]} == {log.data.iloc[0][0]}"
             df_list.append(log.split_csv(row_begin=split_start, row_end=row))
+            LOG(logging.DEBUG) << f"split_start updated : {row}"
             split_start = row
         df_list.append(log.split_csv(row_begin=split_start, row_end=len(log.data)))
         df_list.sort(key=lambda x : len(x.columns), reverse=True)
@@ -122,6 +132,7 @@ class ColumnIntegrator :
         return cls(file_name, df_list, codec = codec)
 
     def __sort_headers(self) -> pd.DataFrame :
+        LOG(logging.DEBUG) << "sort headers"
         headers_list = []
         for df in self.__df_list :
             headers_list.append(list(df.columns))
@@ -129,16 +140,23 @@ class ColumnIntegrator :
         result = list(copy.deepcopy(headers_list[0]))
         for header in headers_list :
             for idx in range(0, len(header)) :
-                if header[idx] in result : continue
+                if header[idx] in result :
+                    LOG(logging.DEBUG) << f"Header already exists : {header[idx]}"
+                    continue
+                LOG(logging.DEBUG) << f"insert the added header : {header[idx]}"
                 result.insert(result.index(header[idx - 1]) + 1, header[idx])
 
         return result
 
     def __find_header(self, headers : list, list_candidate : list) -> str :
+        LOG(logging.DEBUG) << "Function call : ColumnIntegrator.__find_header"
         for candidate in list_candidate :
             if not candidate in headers :
+                LOG(logging.DEBUG) << f"header candidate : {candidate}"
                 continue
+            LOG(logging.DEBUG) << f"Found header : {candidate}"
             return candidate
+        LOG(logging.DEBUG) << "There is no suitable header expected."
         return list_candidate[-1]
 
     def __is_empty(self, row, column) -> bool :
@@ -155,6 +173,9 @@ class ColumnIntegrator :
     
     def set_flag_excuted(self, arg : bool) :
         self.__flag_executed = arg
+    
+    def get_file_name(self) -> str :
+        return self.__file_name.split("/")[-1]
 
     def __make_temporary_module_id(self, sensorid_header : str, barcode_header : str) :
         '''
@@ -166,6 +187,7 @@ class ColumnIntegrator :
         :param barcode_header: Column name that indicates module barcode. this is necessary since the barcode header varies depending on the factory
 
         '''
+        LOG(logging.DEBUG) << "Function call : ColumnIntegrator.__make_temporary_module_id"
         self.__result["temporary_module_id"] = ""
         module_list : list[ModuleInfo] = []
 
@@ -193,9 +215,11 @@ class ColumnIntegrator :
             module_list.append(ModuleInfo(sensorid = self.__result.loc[row, sensorid_header], barcode = self.__result.loc[row, barcode_header], temporary_module_id = len(module_list) + 1))
 
     def __make_temporary_module_id_go(self, sensorid_header : str, barcode_header : str, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
+        LOG(logging.DEBUG) << "Function call : ColumnIntegrator.__make_temporary_module_id_go"
         self.__result["temporary_module_id"] = dll_mgr_temporary_module_id_go.make_temporary_module_id_go(self.__result[sensorid_header].to_list(), self.__result[barcode_header].to_list())
 
     def remove_unexpected_columns(self) :
+        LOG(logging.DEBUG) << "Remove all the unexpected columns that have void name to avoid exception occured at drop_duplicates"
         for df in self.__df_list :
             if None in df.columns :
                 df.drop([None], axis = 1, inplace = True)
@@ -203,10 +227,23 @@ class ColumnIntegrator :
                 df.drop("", axis = 1, inplace = True)
 
     def to_csv_file(self) :
-        self.__result.to_csv(self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv"), index = None, encoding = self.codec)
+        file_name_temp = self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv")
+        LOG(logging.DEBUG) << "Function call : ColumnIntegrator.to_csv_file."
+        LOG(logging.DEBUG) << f"File exported : {file_name_temp}"
+        self.__result.to_csv(file_name_temp, index = None, encoding = self.codec)
 
     def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file_horizontal : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
+        '''
+        1. Call the function pd.concat and integrate all the tables in vertical way.
+        2. Re-order unexpectedly confused headers due to the function call(pd.caoncat).
+        3. Drop duplicates and sort the data.
         
+        : param flag_dll_exist: Defined when the UiMgr instance is initiated.
+        : param flag_make_comprehensive_file_horizontal: A flag indicating whether the UiMgr will make an single csv file that has all the tables on the listbox integrated.
+        : param var_duplicate: Option used to determine the way to drop duplicates.
+        : param var_identification: Module identification option (Module id, Sensor id, Use both Module id and Sensor id, Make temporary module id )
+        : param dll_mgr_temporary_module_id_go: DllMgrTemporaryModuleId instance. This will be used when 'flag_dll_exist' is True.
+        '''
         # DEPRECATED : The blow feature will be conducted in consturctor (init_file).
 
         # split_start = 0
@@ -217,17 +254,21 @@ class ColumnIntegrator :
         # self.__df_list.append(self.log.split_csv(row_begin=split_start, row_end=len(self.log.data)))
         # self.__df_list.sort(key=lambda x : len(x.columns), reverse=True)
         # self.remove_unexpected_columns()
-
+        LOG(logging.DEBUG) << "Function call : pd.concat"
+        LOG(logging.DEBUG) << f"self.__df_list size : {len(self.__df_list)}"
         self.__result = pd.concat(self.__df_list, ignore_index=True)
 
         sorted_headers = self.__sort_headers()
+        LOG(logging.DEBUG) << "pd.reindex using sorted headers"
         self.__result = self.__result.reindex(columns = sorted_headers)
         
+        LOG(logging.DEBUG) << "Find the headers that indicate time, lotnum, barcode, sensorid"
         self.__dict_headers["time"] = self.__find_header(headers = sorted_headers, list_candidate = ["time", "Time", "GlobalTime"])
         self.__dict_headers["lotnum"] = self.__find_header(headers = sorted_headers, list_candidate = ["lotNum", "LotNum"])
         self.__dict_headers["barcode"] = self.__find_header(headers = sorted_headers, list_candidate = ["barcode", "Barcode"])
         self.__dict_headers["sensorid"] = self.__find_header(headers = sorted_headers, list_candidate = ["sensorID", "SensorID"])
 
+        LOG(logging.DEBUG) << "Check Duplicate/Identification flags"
         if flag_make_comprehensive_file_horizontal == True :
             var_identification = int(IDENTIFICATION_OPTION.SENSOR_ID)
             var_duplicate = int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE)
@@ -239,10 +280,13 @@ class ColumnIntegrator :
             subset_duplicate.append(self.__dict_headers["lotnum"])
         match (var_identification) :
             case int(IDENTIFICATION_OPTION.SENSOR_ID) :
+                LOG(logging.DEBUG) << "IDENTIFICATION_OPTION.SENSOR_ID selected"
                 subset_duplicate.append(self.__dict_headers["sensorid"])
             case int(IDENTIFICATION_OPTION.BARCODE) :
+                LOG(logging.DEBUG) << "IDENTIFICATION_OPTION.BARCODE selected"
                 subset_duplicate.append(self.__dict_headers["barcode"])
             case int(IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE) :
+                LOG(logging.DEBUG) << "IDENTIFICATION_OPTION.SENSOR_ID_AND_BARCODE selected"
                 subset_duplicate.append(self.__dict_headers["sensorid"])
                 subset_duplicate.append(self.__dict_headers["barcode"])
             case int(IDENTIFICATION_OPTION.AUTO) :
@@ -256,15 +300,20 @@ class ColumnIntegrator :
             case int(DUPLICATE_OPTION.DO_NOT_DROP) :
                 pass
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT) :
+                LOG(logging.DEBUG) << "DUPLICATE_OPTION.LEAVE_FIRST_FROM_EACH_LOT selected"
                 self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT) :
+                LOG(logging.DEBUG) << "DUPLICATE_OPTION.LEAVE_LAST_FROM_EACH_LOT selected"
                 self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "last", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE) :
+                LOG(logging.DEBUG) << "DUPLICATE_OPTION.LEAVE_FIRST_FROM_WHOLE selected"
                 self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "first", ignore_index = True)
             case int(DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE) :
+                LOG(logging.DEBUG) << "DUPLICATE_OPTION.LEAVE_LAST_FROM_WHOLE selected"
                 self.__result.drop_duplicates(subset_duplicate, inplace = True, keep = "last", ignore_index = True)
         
         if var_identification == int(IDENTIFICATION_OPTION.AUTO) :
+            LOG(logging.DEBUG) << "drop temporary_module_id column after drop_duplicates"
             self.__result.drop(["temporary_module_id"], axis = 1, inplace = True)
         
         # self.to_csv_file()
@@ -288,6 +337,7 @@ class IComprehensiveDataFileMaker :
 
 
     def to_csv_file(self, file_name : str) :
+        LOG(logging.DEBUG) << f"to_csv_file : {file_name}"
         self._result.to_csv(file_name.replace(".csv", f"_MergedLog{self.__post_fix_merged_log}.csv").replace(".CSV", f"_MergedLog{self.__post_fix_merged_log}.csv"), index = None, encoding='utf-8-sig')
 
 class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
@@ -299,6 +349,7 @@ class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
 
         '''
         super().__init__(merge_type, list_df)
+        LOG(logging.DEBUG) << "ComprehensiveDataFileMakerHorizontal initiated"
         
         self.__list_sensorid = [list_sensorid[idx_list] + f"ColIntSuf{idx_list}" for idx_list in range(0, len(list_sensorid))]
 
@@ -306,6 +357,7 @@ class ComprehensiveDataFileMakerHorizontal(IComprehensiveDataFileMaker) :
             self._list_df[idx_df].rename(columns = {list_sensorid[idx_df] : self.__list_sensorid[idx_df]}, inplace = True)
 
     def execute(self) :
+        LOG(logging.DEBUG) << "Start to integrate all the tables in the listbox"
         self._result = self._list_df[0]
 
         for idx_df in range(1, len(self._list_df)) : 
@@ -325,9 +377,11 @@ class ComprehensiveDataFileMakerVertical(IComprehensiveDataFileMaker) :
         :param list_df: ComprehensiveDataFileMakerVertical will eventually integrate these DataFrames into a single table.
         '''
         super().__init__(merge_type, list_df)
+        LOG(logging.DEBUG) << "ComprehensiveDataFileMakerVertical initiated"
 
         self.__column_integrator : ColumnIntegrator = ColumnIntegrator.init_df(file_name, self._list_df)
 
     def execute(self, flag_dll_exist : bool, flag_make_comprehensive_file_horizontal : bool, var_duplicate : int, var_identification : int, dll_mgr_temporary_module_id_go : DllMgrTemporaryModuleId) :
+        LOG(logging.DEBUG) << "Start to integrate all the tables in the listbox in vertical way"
         self.__column_integrator.execute(flag_dll_exist, flag_make_comprehensive_file_horizontal, var_duplicate, var_identification, dll_mgr_temporary_module_id_go)
         self._result = self.__column_integrator.get_result()
