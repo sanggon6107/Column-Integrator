@@ -37,6 +37,7 @@ class UiMgr(metaclass=Singleton) :
 
         self.__font_title = ck.CTkFont(family = "Century Gothic", size = 24)
         self.__font_title_bold = ck.CTkFont(family = "Century Gothic", size = 24, weight = "bold")
+        self.__font_version = ck.CTkFont(family = "Century Gothic", size = 18)
         self.__font_listbox = font.Font(size = 15)
 
         self.__list_full_path = []
@@ -257,6 +258,9 @@ class UiMgr(metaclass=Singleton) :
 
         self.label_title_2 = ck.CTkLabel(self.frame_title, text = "Integrator", font = self.__font_title)
         self.label_title_2.pack(padx = 5, pady = 10, side = "left")
+
+        self.label_version = ck.CTkLabel(self.frame_title, text = "v" + VERSION, font = self.__font_version)
+        self.label_version.pack(padx = 5, pady = 10, side = "right")
 
         self.frame_listbox = ck.CTkFrame(self.__root, fg_color = "transparent")
         self.frame_listbox.pack(fill = "x", padx = 10, pady = 10)
