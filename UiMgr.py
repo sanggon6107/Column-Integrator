@@ -50,6 +50,7 @@ class UiMgr(metaclass=Singleton) :
         self.__var_check_autorun = tk.IntVar()
         self.__var_check_autoclear = tk.IntVar()
         self.__var_make_comprehensive_file = tk.IntVar()
+        self.__var_check_remove_emt_rows = tk.IntVar()
 
         self.__pre_x, self.__pre_y = self.__root.winfo_pointerxy()
         
@@ -68,6 +69,9 @@ class UiMgr(metaclass=Singleton) :
 
     def get_var_duplicate(self) -> int :
         return self.__var_duplicate.get()
+
+    def __get_var_remove_emt_rows(self) -> int :
+        return self.__var_check_remove_emt_rows.get()
 
     def __set_window(self) :
         GWL_EXSTYLE = -20
@@ -108,6 +112,11 @@ class UiMgr(metaclass=Singleton) :
             if full_path_temp in self.__list_full_path : continue
             self.__list_full_path.append(full_path_temp)
             self.__list_column_integrator.append(ColumnIntegrator.init_file(full_path_temp))
+            
+            if self.__get_var_remove_emt_rows() == SETTING.YES :
+                LOG(logging.DEBUG) << "Flag on : remove all the empty rows"
+                self.__list_column_integrator[-1].remove_empty_rows()
+
             self.__list_file.append(file[1])
             self.list_box.insert(tk.END, file[1])
         if self.__var_check_autorun.get() == int(SETTING.YES) : self.__execute_integration()
@@ -329,9 +338,11 @@ class UiMgr(metaclass=Singleton) :
 
         self.checkbox_autorun = ck.CTkCheckBox(self.frame_auto_run_clear, text = "파일 추가 후 자동 시작", checkbox_height = 17, checkbox_width = 17, height = 25, variable = self.__var_check_autorun)
         self.checkbox_autoclear = ck.CTkCheckBox(self.frame_auto_run_clear, text = "실행 후 자동 클리어", checkbox_height = 17, checkbox_width = 17, height = 25, variable = self.__var_check_autoclear)
+        self.checkbox_remove_emt_rows = ck.CTkCheckBox(self.frame_auto_run_clear, text = "공백행 제거", checkbox_height = 17, checkbox_width = 17, height = 25, variable = self.__var_check_remove_emt_rows)
 
         self.checkbox_autorun.grid(column = 0, row = 0, sticky = "w")
         self.checkbox_autoclear.grid(column = 0, row = 1, sticky = "w")
+        self.checkbox_remove_emt_rows.grid(column = 0, row = 2, sticky = "w")
 
         self.frame_btn = ck.CTkFrame(self.__root, fg_color = "transparent")
         self.frame_btn.pack(fill = "x", padx = 10, pady = 10)

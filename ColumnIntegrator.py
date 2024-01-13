@@ -228,6 +228,11 @@ class ColumnIntegrator :
             if "" in df.columns :
                 df.drop("", axis = 1, inplace = True)
 
+    def remove_empty_rows(self) :
+        LOG(logging.DEBUG) << "Remove all the empty rows"
+        for df in self.__df_list :
+            df.dropna(how='all')
+
     def to_csv_file(self) :
         file_name_temp = self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv")
         LOG(logging.DEBUG) << "Function call : ColumnIntegrator.to_csv_file."
