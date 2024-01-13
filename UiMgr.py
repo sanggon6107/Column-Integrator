@@ -8,6 +8,7 @@ import re
 from ctypes import windll
 
 from ColumnIntegrator import *
+from Version import *
 
 class TkWrapper(ck.CTk, dnd.TkinterDnD.DnDWrapper) :
     '''
