@@ -11,7 +11,7 @@ from dataclasses import dataclass
 # MINOR version when you add functionality in a backward compatible manner #
 # PATCH version when you make backward compatible bug fixes                #
 #                                                                          #
-VERSION : str = "1.1.0"                                                    #
+VERSION : str = "1.2.0"                                                    #
 #                                                                          #
 ############################################################################
 
