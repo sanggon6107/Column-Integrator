@@ -62,6 +62,7 @@ class UiMgr(metaclass=Singleton) :
             self.dll_mgr_temporary_module_id_go = DllMgrTemporaryModuleId("./MakeTemporaryModuleIdGo.dll")
         except :
             LOG(logging.INFO) << "Failed to load the dll file. SW will make temporary id using the internal function."
+            self.dll_mgr_temporary_module_id_go = DllMgrTemporaryModuleId("")
             self.exist_dll = False
         
     def get_var_identification(self) -> int :
@@ -113,7 +114,7 @@ class UiMgr(metaclass=Singleton) :
             self.__list_full_path.append(full_path_temp)
             self.__list_column_integrator.append(ColumnIntegrator.init_file(full_path_temp))
             
-            if self.__get_var_remove_emt_rows() == SETTING.YES :
+            if self.__get_var_remove_emt_rows() == int(SETTING.YES) :
                 LOG(logging.DEBUG) << "Flag on : remove all the empty rows"
                 self.__list_column_integrator[-1].remove_empty_rows()
 

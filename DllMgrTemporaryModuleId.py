@@ -16,7 +16,8 @@ class DllMgr() :
 
 class DllMgrTemporaryModuleId(DllMgr) :
     def __init__(self, path_dll_file : str) :
-        super().__init__(path_dll_file)
+        if path_dll_file != "" :
+            super().__init__(path_dll_file)
 
     def make_temporary_module_id_go(self, list_sensorid, list_barcode) -> list :
         list_c_void_p_sensorid = [cast(c_char_p(str(s).encode('utf-8')),c_void_p) for s in list_sensorid]

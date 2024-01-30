@@ -231,7 +231,7 @@ class ColumnIntegrator :
     def remove_empty_rows(self) :
         LOG(logging.DEBUG) << "Remove all the empty rows"
         for df in self.__df_list :
-            df.dropna(how='all')
+            df.dropna(how = 'all', inplace = True)
 
     def to_csv_file(self) :
         file_name_temp = self.__file_name.replace(".csv", "_Result.csv").replace(".CSV", "_Result.csv")
